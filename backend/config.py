@@ -66,6 +66,99 @@ PENALTY = {
 
 
 # ──────────────────────────────────────────────────────────────────────────
+# Four hazard categories — matches D5 proposal §3.7 / P4.3
+# ──────────────────────────────────────────────────────────────────────────
+# Fog risk:
+#   WMO surface synoptic code: fog ≈ visibility < 1 km, RH typically > 95 %,
+#   dew-point depression < ~2 °C. Valley/Slope basins trap radiation fog.
+FOG_HUMIDITY_PCT      = 95.0
+FOG_DEW_DEP_MAX_C     = 2.0
+FOG_CLOUD_BASE_MAX_M  = 800.0    # from D5 §3.7.2 decision table
+
+# Wind gust risk:
+#   On exposed ridges and mountain passes, sustained 25 km/h winds with
+#   topographic acceleration commonly gust to Beaufort F6 levels.
+GUST_WIND_MIN_KMH     = 25.0     # below GALE_WIND_KMH but still risky
+
+# Thunderstorm risk:
+#   NWS "moderate instability" begins at CAPE 500 J/kg; sharp pressure drop
+#   often precedes convective initiation.
+THUNDER_CAPE_MIN_JKG  = 500.0
+THUNDER_PRESSURE_DROP = -2.0     # hPa over past 3 h (matches D5 §1.3 example)
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Decision Table — D5 §3.7.2 / Table 4.2  (one-to-one with the thesis)
+# ──────────────────────────────────────────────────────────────────────────
+# Each rule fires when ALL of its non-None conditions hold. The thesis
+# narrative motivates this table as: "macro forecast says no rain, but
+# the local terrain conditions imply hidden risk".
+DECISION_TABLE_3_7_2 = {
+    "R1": {
+        "description":            "Hidden rain risk — macro says no, terrain says yes",
+        "macro_rain_prob_max":    0.30,
+        "macro_rain_prob_min":    None,
+        "humidity_min_pct":       85.0,
+        "wind_into_slope":        True,
+        "terrain":                "WindwardSlope",
+        "pressure_change_3h_max": -1.5,
+        "cloud_base_max_m":       FOG_CLOUD_BASE_MAX_M,
+        "conclusion_en":          "Hidden rain risk: terrain analysis indicates orographic precipitation despite low macro probability.",
+        "conclusion_zh":          "隐藏降雨风险：宏观预报概率低，但地形分析表明存在地形抬升降水。",
+    },
+    "R2": {
+        "description":            "No significant risk — terrain not aligned",
+        "macro_rain_prob_max":    0.30,
+        "macro_rain_prob_min":    None,
+        "humidity_min_pct":       85.0,
+        "wind_into_slope":        False,
+        "terrain":                "LeewardOrValley",
+        "pressure_change_3h_max": -1.5,
+        "cloud_base_max_m":       FOG_CLOUD_BASE_MAX_M,
+        "conclusion_en":          "No significant rainfall danger at this spot in this period.",
+        "conclusion_zh":          "此地此时无显著降雨危险。",
+    },
+    "R3": {
+        "description":            "Heavy downpour incoming — avoid exposure",
+        "macro_rain_prob_max":    None,
+        "macro_rain_prob_min":    0.70,
+        "humidity_min_pct":       None,
+        "wind_into_slope":        True,
+        "terrain":                "WindwardSlope",
+        "pressure_change_3h_max": None,
+        "cloud_base_max_m":       None,
+        "conclusion_en":          "Heavy downpour incoming. Avoid mountains and valleys.",
+        "conclusion_zh":          "强降雨即将到来。请避开山区与峡谷。",
+    },
+    "R4": {
+        "description":            "Normal rain — no terrain amplification",
+        "macro_rain_prob_max":    None,
+        "macro_rain_prob_min":    0.70,
+        "humidity_min_pct":       None,
+        "wind_into_slope":        None,
+        "terrain":                None,
+        "pressure_change_3h_max": None,
+        "cloud_base_max_m":       None,
+        "conclusion_en":          "Rain expected, but no terrain-induced amplification. Standard rain precautions apply.",
+        "conclusion_zh":          "预计有雨，但无地形抬升放大。按一般雨天措施应对即可。",
+    },
+}
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Activity-aware weighting — D5 §3.7 / P4.4
+# ──────────────────────────────────────────────────────────────────────────
+# Composite = Σ w_i · subscore_i, then renormalised to 0-100.
+# Rows: activity. Cols: rainfall, fog, wind_gust, thunderstorm.
+ACTIVITY_WEIGHTS = {
+    "hiker":        {"rainfall": 1.0, "fog": 1.3, "wind_gust": 1.0, "thunderstorm": 1.4},
+    "driver":       {"rainfall": 0.8, "fog": 1.5, "wind_gust": 1.3, "thunderstorm": 0.9},
+    "construction": {"rainfall": 1.0, "fog": 0.8, "wind_gust": 1.5, "thunderstorm": 1.4},
+    "general":      {"rainfall": 1.0, "fog": 1.0, "wind_gust": 1.0, "thunderstorm": 1.0},
+}
+
+
+# ──────────────────────────────────────────────────────────────────────────
 # Cache TTL (risk-adaptive)
 # ──────────────────────────────────────────────────────────────────────────
 # Safety-critical apps must not serve stale "Safe" verdicts during developing

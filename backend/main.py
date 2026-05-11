@@ -29,7 +29,10 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from . import cache, config, rule_engine, terrain
 from .ml_engine import MLEngine
-from .schemas import PredictionResponse, VetoTrigger, InferenceStep
+from .schemas import (
+    ActivityType,
+    PredictionResponse,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("microclimate-x")
@@ -146,9 +149,13 @@ async def _fetch_current_weather(client: httpx.AsyncClient, lat: float, lon: flo
 async def predict(
     lat: float = Query(..., ge=-90.0,  le=90.0,  description="Latitude (WGS84)"),
     lon: float = Query(..., ge=-180.0, le=180.0, description="Longitude (WGS84)"),
+    activity: ActivityType = Query(
+        "general",
+        description="User activity context — affects composite-score weighting (D5 §3.7 / P4.4)",
+    ),
 ) -> PredictionResponse:
-    # ── Cache lookup first ──
-    hit = await cache.get(lat, lon)
+    # ── Cache lookup first (per-coordinate + per-activity) ──
+    hit = await cache.get(lat, lon, activity=activity)
     if hit is not None:
         payload, ttl_remaining = hit
         payload["cached"] = True
@@ -206,6 +213,7 @@ async def predict(
         slope_deg=tinfo.slope_deg,
         aspect_deg=tinfo.aspect_deg,
         orographic_dot=orographic_dot,
+        activity=activity,
     )
 
     # ── Assemble response ──
@@ -216,6 +224,9 @@ async def predict(
         elevation_m=tinfo.elevation_m,
         terrain=tinfo.terrain,
         ml_rain_probability=ml_prob,
+        hazard_subscores=rule_result.hazard_subscores,
+        decision_table_matches=rule_result.decision_table_matches,
+        activity=rule_result.activity,
         risk_score=rule_result.risk_score,
         risk_level=rule_result.risk_level,
         veto_triggers=rule_result.veto_triggers,
@@ -227,7 +238,8 @@ async def predict(
     )
 
     # ── Cache + audit-log ──
-    await cache.set(lat, lon, response.model_dump(mode="json"), ttl)
+    await cache.set(lat, lon, response.model_dump(mode="json"), ttl,
+                    activity=activity)
     await cache.log_inference(
         lat, lon, rule_result.risk_score, rule_result.has_veto,
         rule_result.advice_en,

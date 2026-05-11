@@ -24,6 +24,14 @@
     .veto-row { animation: blink 1.2s ease-in-out infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.55} }
     .kbd { background:#1f2937; border:1px solid #374151; padding:1px 6px; border-radius:6px; font-size:11px; }
+    .mini-gauge-svg { transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease; }
+    .pill { padding: 4px 10px; border-radius: 999px; font-size: 11px; border:1px solid #374151;
+            color:#94a3b8; transition: background .15s, color .15s, border-color .15s; }
+    .pill:hover { color:#e2e8f0; }
+    .pill-active { background:#34d399; color:#052e2b; border-color:#34d399; font-weight:600; }
+    .rule-badge { padding:2px 6px; font-size:10px; border-radius:6px; background:#1f2937;
+                  border:1px solid #374151; color:#94a3b8; font-family: ui-monospace, monospace; }
+    .rule-badge-fired { background: #422006; border-color: #b45309; color: #fbbf24; }
   </style>
 </head>
 <body class="min-h-screen">
@@ -37,7 +45,17 @@
           <div class="text-[11px] text-slate-500 mono">Hybrid Microclimate Risk Engine · UKM FYP</div>
         </div>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
+        <!-- Activity selector -->
+        <div class="flex items-center gap-1">
+          <span class="text-[11px] text-slate-500 mr-1 hidden md:inline">{{ t.activity }}</span>
+          <button v-for="a in ACTIVITIES" :key="a"
+                  @click="setActivity(a)"
+                  :class="['pill', activity===a && 'pill-active']">
+            {{ t.activities[a] }}
+          </button>
+        </div>
+        <span class="text-slate-700">|</span>
         <button @click="lang='en'" :class="['px-2.5 py-1 rounded text-xs ring-1 ring-slate-700',
                                               lang==='en' ? 'bg-emerald-500/20 text-emerald-300 ring-emerald-500/40' : 'text-slate-400 hover:text-slate-200']">EN</button>
         <button @click="lang='zh'" :class="['px-2.5 py-1 rounded text-xs ring-1 ring-slate-700',
@@ -99,6 +117,61 @@
           </p>
         </div>
 
+        <!-- Sub-hazard mini-gauges (D5 §3.7 / P4.3) -->
+        <div class="panel p-4">
+          <div class="flex items-center justify-between text-xs uppercase tracking-widest text-slate-500 mono mb-3">
+            <span>{{ t.subHazards }}</span>
+            <span class="text-slate-600">P4.3 · P4.4</span>
+          </div>
+          <div class="grid grid-cols-4 gap-2">
+            <div v-for="h in HAZARDS" :key="h.key" class="flex flex-col items-center gap-1">
+              <div class="relative w-14 h-14">
+                <svg viewBox="0 0 60 60" class="w-full h-full -rotate-90">
+                  <circle cx="30" cy="30" r="24" stroke="#1f2937" stroke-width="6" fill="none"/>
+                  <circle cx="30" cy="30" r="24" :stroke="subHazardColor(display.hazard_subscores?.[h.key])"
+                          stroke-width="6" fill="none" stroke-linecap="round"
+                          :stroke-dasharray="2 * Math.PI * 24"
+                          :stroke-dashoffset="2 * Math.PI * 24 * (1 - ((display.hazard_subscores?.[h.key] ?? 0) / 100))"
+                          class="mini-gauge-svg"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="text-[13px] font-semibold mono"
+                       :style="{color: subHazardColor(display.hazard_subscores?.[h.key])}">
+                    {{ display.hazard_subscores?.[h.key] ?? '–' }}
+                  </div>
+                </div>
+              </div>
+              <div class="text-[10px] text-slate-400 text-center leading-tight">
+                {{ t.hazards[h.key] }}
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 flex items-center justify-between text-[10px] text-slate-500 mono">
+            <span>Activity weight: {{ t.activities[display.activity || activity] }}</span>
+            <span>Composite ← max-dominant + 0.2 · others</span>
+          </div>
+        </div>
+
+        <!-- D5 §3.7.2 Decision Table R1-R4 -->
+        <div class="panel p-4">
+          <div class="flex items-center justify-between text-xs uppercase tracking-widest text-slate-500 mono mb-2">
+            <span>{{ t.decisionTable }}</span>
+            <span class="text-slate-600">§3.7.2 Table 4.2</span>
+          </div>
+          <div class="flex gap-1.5 mb-2">
+            <span v-for="r in ['R1','R2','R3','R4']" :key="r"
+                  :class="['rule-badge', ruleFired(r) && 'rule-badge-fired']">{{ r }}</span>
+          </div>
+          <div v-if="display.decision_table_matches && display.decision_table_matches.length">
+            <p v-for="m in display.decision_table_matches" :key="m.rule"
+               class="text-[12px] text-amber-200 leading-snug pl-1">
+              <span class="mono text-amber-400">{{ m.rule }}</span>
+              · {{ lang === 'zh' ? m.conclusion_zh : m.conclusion_en }}
+            </p>
+          </div>
+          <p v-else class="text-[11px] text-slate-500">{{ t.noRuleFired }}</p>
+        </div>
+
         <!-- Veto block -->
         <div v-if="display.veto_triggers && display.veto_triggers.length"
              class="panel p-4 border-red-500/40">
@@ -156,6 +229,14 @@
   <script>
     const { createApp, reactive, computed, ref, onMounted, watch, nextTick } = Vue;
 
+    const ACTIVITIES = ["hiker", "driver", "construction", "general"];
+    const HAZARDS = [
+      { key: "rainfall" },
+      { key: "fog" },
+      { key: "wind_gust" },
+      { key: "thunderstorm" },
+    ];
+
     const I18N = {
       en: {
         clickHint: "any point on the map for analysis",
@@ -167,6 +248,12 @@
         inferenceLog: "Inference log",
         disclaimer: "Decision-support only. Always consult official forecasts.",
         levels: { Safe:"Safe", Caution:"Caution", Warning:"Warning", Danger:"Danger" },
+        activity: "Activity",
+        activities: { hiker:"🥾 Hiker", driver:"🚗 Driver", construction:"🏗️ Construction", general:"🧭 General" },
+        subHazards:  "Hazard breakdown",
+        hazards: { rainfall:"Rainfall", fog:"Fog", wind_gust:"Wind gust", thunderstorm:"Thunderstorm" },
+        decisionTable: "Decision table",
+        noRuleFired:   "No D5 §3.7.2 rule fired for this scenario.",
       },
       zh: {
         clickHint: "点击地图任意位置开始分析",
@@ -178,12 +265,19 @@
         inferenceLog: "推理日志",
         disclaimer: "仅供辅助决策，请同时参考官方气象预报。",
         levels: { Safe:"安全", Caution:"注意", Warning:"警告", Danger:"危险" },
+        activity: "活动",
+        activities: { hiker:"🥾 徒步", driver:"🚗 驾驶", construction:"🏗️ 施工", general:"🧭 通用" },
+        subHazards:  "分项灾害评分",
+        hazards: { rainfall:"降雨", fog:"雾", wind_gust:"阵风", thunderstorm:"雷暴" },
+        decisionTable: "决策表",
+        noRuleFired:   "当前场景未触发 D5 §3.7.2 中的任何规则。",
       },
     };
 
     createApp({
       setup() {
         const lang = ref("en");
+        const activity = ref(localStorage.getItem("mcx_activity") || "hiker");
         const t = computed(() => I18N[lang.value]);
         const apiBase = (() => {
           const meta = document.querySelector('meta[name="api-base"]');
@@ -206,6 +300,9 @@
           advice_zh: "",
           cached: false,
           cache_ttl: 0,
+          hazard_subscores: null,
+          decision_table_matches: [],
+          activity: null,
         });
 
         const riskFraction = computed(() =>
@@ -225,12 +322,26 @@
         });
 
         const logColor = (kind) => ({
-          info:  "text-slate-300",
-          ml:    "text-cyan-300",
-          rule:  "text-amber-300",
-          veto:  "text-red-400 font-medium",
-          score: "text-emerald-300",
+          info:     "text-slate-300",
+          ml:       "text-cyan-300",
+          rule:     "text-amber-300",
+          veto:     "text-red-400 font-medium",
+          score:    "text-emerald-300",
+          hazard:   "text-violet-300",
+          table:    "text-amber-200 font-medium",
+          activity: "text-emerald-200",
         }[kind] || "text-slate-400");
+
+        const subHazardColor = (score) => {
+          if (score == null) return "#475569";
+          if (score >= 80) return "#ef4444";
+          if (score >= 55) return "#f97316";
+          if (score >= 30) return "#fbbf24";
+          return "#34d399";
+        };
+
+        const ruleFired = (rule) =>
+          (display.decision_table_matches || []).some(m => m.rule === rule);
 
         const logScroll = ref(null);
 
@@ -244,11 +355,14 @@
         async function fetchPrediction(lat, lon) {
           // typewriter — pre-clear and show "thinking"
           display.inference_log = [
-            { kind: "info", text_en: `Querying (${lat.toFixed(4)}, ${lon.toFixed(4)})…`,
-                            text_zh: `查询坐标 (${lat.toFixed(4)}, ${lon.toFixed(4)})…` },
+            { kind: "info",
+              text_en: `Querying (${lat.toFixed(4)}, ${lon.toFixed(4)}) for activity=${activity.value}…`,
+              text_zh: `查询坐标 (${lat.toFixed(4)}, ${lon.toFixed(4)})，活动类型 ${activity.value}…` },
           ];
           try {
-            const r = await fetch(`${apiBase}/api/predict?lat=${lat}&lon=${lon}`);
+            const r = await fetch(
+              `${apiBase}/api/predict?lat=${lat}&lon=${lon}&activity=${encodeURIComponent(activity.value)}`
+            );
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const data = await r.json();
             Object.assign(display, data);
@@ -277,6 +391,14 @@
           fetchPrediction(lat, lng);
         }
 
+        function setActivity(a) {
+          activity.value = a;
+          localStorage.setItem("mcx_activity", a);
+          if (display.latitude != null && display.longitude != null) {
+            fetchPrediction(display.latitude, display.longitude);
+          }
+        }
+
         onMounted(() => {
           map = L.map("map", {
             center: [3.4225, 101.7935],  // Genting Highlands
@@ -293,8 +415,12 @@
           setTimeout(() => onClick({ latlng: { lat: 3.4225, lng: 101.7935 } }), 600);
         });
 
-        return { lang, t, display, riskFraction, riskColor, riskLevelText,
-                 logColor, logScroll, apiBase };
+        return {
+          lang, t, display, riskFraction, riskColor, riskLevelText,
+          logColor, logScroll, apiBase,
+          activity, setActivity, subHazardColor, ruleFired,
+          ACTIVITIES, HAZARDS,
+        };
       },
     }).mount("#app");
   </script>

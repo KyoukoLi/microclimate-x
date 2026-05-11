@@ -42,9 +42,9 @@ CREATE TABLE IF NOT EXISTS inference_log (
 """
 
 
-def _grid_key(lat: float, lon: float) -> str:
+def _grid_key(lat: float, lon: float, activity: str = "general") -> str:
     res = config.GRID_RESOLUTION_DEG
-    return f"{int(round(lat / res))}:{int(round(lon / res))}"
+    return f"{int(round(lat / res))}:{int(round(lon / res))}:{activity}"
 
 
 def _connect(db_path: Path) -> sqlite3.Connection:
@@ -86,8 +86,8 @@ def _get_blocking(db_path: Path, key: str) -> tuple[dict[str, Any], int] | None:
         conn.close()
 
 
-async def get(lat: float, lon: float) -> tuple[dict[str, Any], int] | None:
-    return await asyncio.to_thread(_get_blocking, config.DB_PATH, _grid_key(lat, lon))
+async def get(lat: float, lon: float, *, activity: str = "general") -> tuple[dict[str, Any], int] | None:
+    return await asyncio.to_thread(_get_blocking, config.DB_PATH, _grid_key(lat, lon, activity))
 
 
 def _set_blocking(db_path: Path, key: str, payload: dict[str, Any], ttl_sec: int) -> None:
@@ -102,8 +102,10 @@ def _set_blocking(db_path: Path, key: str, payload: dict[str, Any], ttl_sec: int
         conn.close()
 
 
-async def set(lat: float, lon: float, payload: dict[str, Any], ttl_sec: int) -> None:
-    await asyncio.to_thread(_set_blocking, config.DB_PATH, _grid_key(lat, lon), payload, ttl_sec)
+async def set(lat: float, lon: float, payload: dict[str, Any], ttl_sec: int,
+              *, activity: str = "general") -> None:
+    await asyncio.to_thread(_set_blocking, config.DB_PATH, _grid_key(lat, lon, activity),
+                            payload, ttl_sec)
 
 
 def adaptive_ttl(risk_score: int, has_veto: bool) -> int:

@@ -75,6 +75,70 @@
 
 ---
 
+## 8. Fog sub-hazard — `FOG_HUMIDITY_PCT = 95 %`, `FOG_DEW_DEP_MAX_C = 2 °C`, `FOG_CLOUD_BASE_MAX_M = 800 m`
+
+**Rule**: the fog sub-scorer awards near-maximum contribution when humidity ≥ 95 %, dew-point depression ≤ 2 °C, and cloud base ≤ 800 m.
+
+**Citation**: World Meteorological Organization. (2019). *Guide to Meteorological Instruments and Methods of Observation (CIMO Guide)*, WMO-No. 8, Chapter on Visibility. https://library.wmo.int/idurl/4/68695
+
+**Justification**: WMO surface synoptic codes define fog as visibility < 1 km, which is observed most reliably when humidity is near saturation (typically > 95 %) and dew-point depression is below 2 °C. The 800 m cloud-base ceiling is the value used in the D5 §3.7.2 decision table to detect "low cloud meeting terrain".
+
+---
+
+## 9. Wind gust sub-hazard — `GUST_WIND_MIN_KMH = 25 km/h`
+
+**Rule**: wind gust sub-score scales linearly with sustained wind from 25 km/h up to the gale Veto at 40 km/h, with terrain amplification for ridges and exposed slopes.
+
+**Citation**: WMO Beaufort Wind Force Scale; Holton, J. R. (2004). *An Introduction to Dynamic Meteorology*, 4th ed., on mountain-wave and pass-acceleration phenomena.
+
+**Justification**: On exposed ridges and through mountain passes, sustained winds of 25 km/h commonly gust 1.3-1.8× higher (Beaufort F6 territory). Trees and shrubs near peaks become wind-snap hazards, and weight-of-pack stability margins narrow significantly above ~30 km/h sustained.
+
+---
+
+## 10. Thunderstorm sub-hazard — `THUNDER_CAPE_MIN_JKG = 500 J/kg`, `THUNDER_PRESSURE_DROP = -2 hPa / 3 h`
+
+**Rule**: the thunderstorm sub-scorer adds significant contribution when CAPE ≥ 500 J/kg, with a precipitator boost when pressure has dropped ≥ 2 hPa over the past 3 hours.
+
+**Citation**: National Weather Service Convective Outlook reference values; Doswell, C. A. III, & Schultz, D. M. (2006). *On the Use of Indices and Parameters in Forecasting Severe Storms*. **E-Journal of Severe Storms Meteorology**, 1(3).
+
+**Justification**: CAPE ≥ 500 J/kg is the conventional "moderate instability" floor at which convective storms become possible (1000 J/kg is the *Veto* — at that level lightning is likely). A 2 hPa / 3 h pressure fall is a textbook frontal-passage / mesoscale-convective-system precursor, well below the rapid-pressure-fall thresholds used in operational forecasting.
+
+---
+
+## 11. D5 §3.7.2 / Table 4.2 Decision Table — R1-R4
+
+| Rule | Trigger | Conclusion |
+|---|---|---|
+| **R1** | macro rain prob ≤ 30 %, humidity > 85 %, wind into a windward slope, pressure tendency < -1.5 hPa/3h, cloud base < 800 m | Hidden orographic-rain risk despite low macro probability |
+| **R2** | Same humidity / pressure / cloud-base as R1, but wind NOT into slope, terrain leeward or valley | No significant rain — macro forecast is correct |
+| **R3** | macro rain prob ≥ 70 %, wind into a windward slope | Heavy downpour incoming — avoid mountains and valleys |
+| **R4** | macro rain prob ≥ 70 %, no terrain amplification | Standard-rain precautions; no orographic amplification |
+
+**Citation**: D5 Proposal — "MicroClimate-X" §3.7.2 Decision Table 4.2 (own work, derived from Roe 2005 orographic-precipitation theory and standard synoptic-meteorology pressure-tendency / cloud-base rules of thumb).
+
+**Justification**: This 4-row decision table captures the *thesis-original* contribution — converting macro-scale model output (probability of rain in a coarse grid cell) into a *terrain-aware verdict* by combining wind alignment, humidity, and pressure tendency. The fact that R1 (hidden rain) and R3 (heavy downpour) can both fire on a windward slope while R2 (no risk) fires on a leeward valley with otherwise-identical macro probability is the table's discriminative value.
+
+---
+
+## 12. Activity weights — D5 §3.7 / P4.4
+
+| Activity | Rainfall | Fog | Wind Gust | Thunderstorm |
+|---|---|---|---|---|
+| **hiker**        | 1.0 | **1.3** | 1.0 | **1.4** |
+| **driver**       | 0.8 | **1.5** | 1.3 | 0.9 |
+| **construction** | 1.0 | 0.8 | **1.5** | **1.4** |
+| **general**      | 1.0 | 1.0 | 1.0 | 1.0 |
+
+**Justification**:
+- *Hikers* die above tree line from lightning and disorientation in fog (NOLS Wilderness Medicine, 2020 incident review).
+- *Drivers* lose vehicle control most often in fog (visibility), with wind a secondary hazard for high-sided vehicles (FHWA *Road Weather Management* program, 2019).
+- *Construction* workers care about wind (crane / scaffolding) and lightning (OSHA 29 CFR §1926.95 *PPE*).
+- *General* preserves a calibration baseline against which the other profiles can be benchmarked.
+
+Per-sub-score weight is multiplied, then per-hazard score is clipped to 100 so a weight of 1.5 cannot push a single sub-score past saturation; the composite formula then aggregates with 80 % weight on the dominant (worst) hazard.
+
+---
+
 ## Composite-index validity / 复合指数的效度
 
 The final 0-100 risk score is a **composite indicator**, not a calibrated probability. Following the methodology of established indices (Fire Weather Index — van Wagner, 1987; Heat Index — Steadman, 1979), validity is established through:

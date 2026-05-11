@@ -54,6 +54,23 @@ Pure ML can fail catastrophically out-of-distribution. Example: feed Mount Evere
 
 **Engine B's Veto mechanism** provides bounded safety guarantees by overriding the ML score when physical thresholds are breached. This follows the **Neuro-Symbolic AI** paradigm (Garcez & Lamb, 2020).
 
+### Engine B internals — one-to-one with D5 proposal §3.7 / P4
+
+The rule engine is decomposed exactly along the lines of the thesis proposal so every line of code maps to a section number:
+
+| Proposal step | Code | Output |
+|---|---|---|
+| **P4.1** Load Dynamic Risk Rules | `backend/config.py` | All thresholds, weights, and the R1-R4 decision table, each annotated with its academic citation |
+| **P4.2** Fetch User Context | `?activity=hiker\|driver\|construction\|general` | Activity is plumbed into the request flow |
+| **P4.3** Evaluate Environmental Risks | Four `score_*_risk()` functions in `rule_engine.py` | Rainfall / Fog / Wind-gust / Thunderstorm sub-scores (each 0-100) |
+| **§3.7.2 Table 4.2** Decision Table | `apply_decision_table_3_7_2()` | Which of R1-R4 fired (hidden rain / no amplification / heavy downpour / standard rain) |
+| Veto cascade | `_collect_veto_triggers()` | Life-safety overrides (Mt-Everest type) — capped at 100 |
+| **P4.4** Activity weighting | `apply_activity_weighting()` | (activity × hazard) weight matrix |
+| **P4.5** Composite score | Same | `0.80 · max(weighted) + 0.20 · mean(rest)` — dominant hazard wins |
+| **P4.6** Actionable advice | `_normal_advice()` / `_veto_advice()` | Bilingual EN/ZH paragraph that names the dominant hazard |
+
+Four hazard categories surfaced in the UI as four mini-gauges; the four R1-R4 indicators light up beside the score card whenever a rule fires.
+
 ## 3. Tech Stack / 技术栈
 
 | Layer | Technology |
