@@ -15,7 +15,7 @@ ENV/
 build/
 dist/
 
-# Data & Models
+# Data & Models — big binaries stay local
 data/*.csv
 data/*.parquet
 models/*.pkl
@@ -27,6 +27,9 @@ models/*.onnx
 *.db-journal
 *.db-wal
 *.db-shm
+# …but keep small JSON artefacts that document the training run.
+!models/training_report.json
+!models/feature_columns.json
 
 # Notebooks
 .ipynb_checkpoints/

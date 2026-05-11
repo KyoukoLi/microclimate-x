@@ -1,0 +1,20 @@
+[
+  "elevation_m",
+  "temperature_c",
+  "humidity_pct",
+  "wind_speed_kmh",
+  "wind_direction_deg",
+  "wind_u",
+  "wind_v",
+  "pressure_hpa",
+  "pressure_change_3h",
+  "dew_point_c",
+  "dew_point_depression",
+  "cloud_cover_pct",
+  "cape_jkg",
+  "precipitation_lag_1h",
+  "hour_sin",
+  "hour_cos",
+  "month_sin",
+  "month_cos"
+]

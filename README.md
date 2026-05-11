@@ -76,13 +76,16 @@ Pure ML can fail catastrophically out-of-distribution. Example: feed Mount Evere
 
 ```bash
 # 1. Clone & install
-git clone https://github.com/<your-username>/microclimate-x.git
+git clone https://github.com/KyoukoLi/microclimate-x.git
 cd microclimate-x
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 2. Download dataset (~5-10 min, hits Open-Meteo API)
+# 2a. (Recommended) Download real ERA5 data via Open-Meteo (~5-10 min)
 python scripts/1_download_dataset.py
+#  …or 2b. Offline fallback — generate a physically-plausible synthetic
+#         dataset with the same schema (~2 seconds, no network needed)
+python scripts/1b_synth_dataset.py
 
 # 3. Preprocess + engineer features + label Y
 python scripts/2_preprocess.py
@@ -98,6 +101,27 @@ open frontend/index.html   # macOS
 # or just double-click frontend/index.html
 ```
 
+### Sample training output (synthetic dataset) / 训练样例输出
+
+The pipeline above is fully end-to-end validated. On the synthetic dataset
+(`scripts/1b_synth_dataset.py`, 175 315 samples) the Random Forest yields:
+
+| Metric | Value |
+|---|---|
+| Test AUC      | **0.755** |
+| Test F1 (rain) | 0.567 |
+| Test F2 (rain) | **0.621** (we prefer F2 — recall matters more for safety) |
+| Recall (rain)  | 0.663 |
+| Class balance  | 26.0 % positive |
+
+Top feature importances reflect the synthetic generator's design choices:
+`cloud_cover_pct`, `month_sin`/`month_cos` (monsoon seasonality), and
+`temperature_c` dominate. On real ERA5 data we expect AUC ≥ 0.80 and the
+relative ranking of `pressure_change_3h`, `cape_jkg`, and
+`precipitation_lag_1h` to rise significantly.
+
+See `models/training_report.json` for the full 5-fold CV report.
+
 ## 6. Project Structure / 项目结构
 
 ```
@@ -111,7 +135,8 @@ microclimate-x/
 │   ├── schemas.py        # Pydantic request/response models
 │   └── config.py         # Thresholds + academic citations
 ├── scripts/
-│   ├── 1_download_dataset.py
+│   ├── 1_download_dataset.py    # Open-Meteo + Open-Topo-Data (real ERA5)
+│   ├── 1b_synth_dataset.py      # physically-plausible offline fallback
 │   ├── 2_preprocess.py
 │   └── 3_train_model.py
 ├── frontend/
@@ -153,11 +178,12 @@ See `docs/thresholds.md` for the full citation table per Veto threshold.
 - [x] Frontend dashboard with XAI inference log
 - [x] SQLite caching with WAL + risk-adaptive TTL
 - [x] Terrain detection engine (Valley / Slope / Flat)
-- [x] Rule-based Veto + 0-100 scoring engine
+- [x] Rule-based Veto + 0-100 scoring engine (19/19 unit tests passing)
 - [x] Bilingual (EN/ZH) advice generation
-- [x] Dataset download script (Open-Meteo + Open Topo Data)
+- [x] Dataset download script (Open-Meteo + Open Topo Data) + offline synthetic fallback
 - [x] Preprocessing pipeline (feature engineering + label `is_rain_event`)
-- [x] Random Forest training with time-based CV
+- [x] Random Forest training with time-based CV — **end-to-end pipeline validated**
+- [ ] Retrain on real ERA5 data (currently demoed on synthetic data)
 - [ ] Model comparison (RFC vs LogReg vs XGBoost) — thesis Chapter 5
 - [ ] Hindcast validation against real Malaysian flood events
 - [ ] PWA offline mode for low-network mountain use

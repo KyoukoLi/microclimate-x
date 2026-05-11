@@ -83,9 +83,29 @@ Empirically in tropical Malaysia, `is_rain_event = 1` holds in approximately 20-
 ## 8. Reproducibility / 可复现性
 
 ```bash
+# Real ERA5 path (preferred)
 python scripts/1_download_dataset.py    # ~5-10 min, network-bound
 python scripts/2_preprocess.py          # < 30 s
 python scripts/3_train_model.py         # ~30-90 s on a modern laptop
 ```
 
 All scripts are idempotent — re-running them does not duplicate data or re-download files that already exist locally.
+
+## 9. Offline / synthetic-data fallback / 离线合成数据回退
+
+For environments without network access (e.g. exam labs, restricted classroom networks) we ship `scripts/1b_synth_dataset.py`, a deterministic physics-informed synthetic generator (seed = 42, see file header for the meteorological assumptions encoded).
+
+The synthetic dataset:
+- has the **identical schema** as the Open-Meteo download,
+- preserves Malaysia's bimodal monsoon seasonality, tropical diurnal cycle, lapse rate, hydrostatic pressure decay, and zero-inflated rain distribution,
+- yields a comparable class balance (~26 % positive),
+- lets the **entire pipeline + frontend + tests** be exercised without any external network calls.
+
+It is **not** a substitute for real ERA5 data in the final thesis evaluation. The recommended workflow once network is restored is:
+
+```bash
+rm data/raw_*.csv data/processed.csv         # clear synthetic data
+python scripts/1_download_dataset.py         # fetch real ERA5 via Open-Meteo
+python scripts/2_preprocess.py
+python scripts/3_train_model.py              # retrain on real data
+```
