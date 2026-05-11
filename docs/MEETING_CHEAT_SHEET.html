@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Supervisor Meeting Cheat Sheet — MicroClimate-X</title>
+<style>
+  /* ============================================================
+     Print-optimised A4 cheat sheet — open in browser, ⌘+P → PDF
+     ============================================================ */
+  :root {
+    --ink:           #0b0d12;
+    --ink-soft:      #353a44;
+    --muted:         #6b7280;
+    --brand:         #2563eb;
+    --brand-soft:    #dbeafe;
+    --accent:        #b91c1c;
+    --accent-soft:   #fee2e2;
+    --ok:            #166534;
+    --ok-soft:       #dcfce7;
+    --warn:          #b45309;
+    --warn-soft:     #fef3c7;
+    --grid:          #e5e7eb;
+    --bg:            #ffffff;
+    --code-bg:       #f3f4f6;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                 "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+                 system-ui, sans-serif;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+
+  /* A4 page sizing */
+  @page { size: A4; margin: 12mm 14mm; }
+
+  main { max-width: 200mm; margin: 0 auto; padding: 14mm 14mm; }
+
+  /* Headings */
+  h1 {
+    font-size: 22pt; margin: 0 0 4mm 0;
+    border-bottom: 3px solid var(--brand); padding-bottom: 3mm;
+    page-break-after: avoid;
+  }
+  h1 .zh { display: block; font-size: 13pt; color: var(--muted); font-weight: 500; margin-top: 1mm; }
+  h2 {
+    font-size: 14pt; margin: 9mm 0 3mm 0;
+    color: var(--brand);
+    border-left: 4px solid var(--brand); padding: 1mm 0 1mm 3mm;
+    page-break-after: avoid;
+  }
+  h2 .zh { display: block; font-size: 10pt; color: var(--muted); margin-top: 0.5mm; font-weight: 500; }
+  h3 {
+    font-size: 11.5pt; margin: 5mm 0 2mm 0; color: var(--ink-soft);
+    page-break-after: avoid;
+  }
+  h4 { font-size: 10.5pt; margin: 3mm 0 1mm 0; color: var(--accent); }
+
+  /* Paragraphs / lists */
+  p, li { margin: 1mm 0; }
+  ul, ol { padding-left: 5mm; }
+  ul li { margin-bottom: 1mm; }
+
+  /* Quote / supervisor verbatim */
+  .quote {
+    background: var(--warn-soft);
+    border-left: 3px solid var(--warn);
+    padding: 2mm 3mm; margin: 2mm 0;
+    font-style: italic; font-size: 10pt;
+  }
+  .quote::before { content: "🎙️ "; font-style: normal; }
+
+  /* Bilingual two-column table */
+  table.bilingual, table.steps, table.tabs, table {
+    border-collapse: collapse; width: 100%; margin: 2mm 0 3mm 0;
+    font-size: 10pt;
+  }
+  table.bilingual td, table.steps td, table.tabs td, table th, table td {
+    padding: 1.5mm 2.5mm; vertical-align: top;
+    border: 1px solid var(--grid);
+  }
+  table th {
+    background: #f9fafb; font-weight: 600; text-align: left;
+    color: var(--ink-soft);
+  }
+  table.bilingual td.en { width: 50%; }
+  table.bilingual td.zh { width: 50%; background: #fafbfc; }
+
+  /* Inline callouts */
+  .callout {
+    margin: 2mm 0; padding: 2mm 3mm;
+    border-left: 3px solid; border-radius: 1mm;
+    font-size: 10pt;
+  }
+  .callout.warn { background: var(--accent-soft); border-color: var(--accent); }
+  .callout.ok   { background: var(--ok-soft); border-color: var(--ok); }
+  .callout.tip  { background: var(--brand-soft); border-color: var(--brand); }
+
+  .callout-title { font-weight: 700; margin-bottom: 1mm; }
+
+  /* Code */
+  code, pre, kbd {
+    font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 9.5pt;
+  }
+  code { background: var(--code-bg); padding: 0.3mm 1mm; border-radius: 1mm; }
+  pre {
+    background: var(--code-bg); padding: 3mm; border-radius: 2mm;
+    overflow-x: auto; margin: 2mm 0;
+    border: 1px solid var(--grid);
+  }
+  pre code { background: transparent; padding: 0; }
+
+  /* Step grids */
+  .step {
+    display: flex; gap: 3mm;
+    margin: 2mm 0;
+    align-items: flex-start;
+  }
+  .step .num {
+    flex: 0 0 8mm; width: 8mm; height: 8mm; border-radius: 50%;
+    background: var(--brand); color: white; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11pt;
+  }
+  .step .body { flex: 1; }
+
+  /* Demo blocks */
+  .demo {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 2mm;
+    padding: 3mm;
+    margin: 3mm 0;
+  }
+  .demo .demo-title { font-weight: 700; color: #075985; margin-bottom: 1mm; }
+
+  /* Checklist */
+  .check { font-family: "SF Mono", Menlo, monospace; font-size: 9.5pt; line-height: 1.7; }
+  .check .box { display: inline-block; width: 4mm; }
+
+  /* Page break helpers */
+  .pb { page-break-before: always; }
+  .nobreak { page-break-inside: avoid; }
+
+  /* Footer */
+  footer {
+    margin-top: 12mm; padding-top: 4mm;
+    border-top: 1px solid var(--grid);
+    color: var(--muted); font-size: 9pt; text-align: center;
+  }
+
+  /* Print refinements */
+  @media print {
+    body { font-size: 10pt; }
+    h2 { font-size: 13pt; }
+    .no-print { display: none; }
+    a { color: var(--ink); text-decoration: none; }
+  }
+
+  /* Toolbar (screen only) */
+  .toolbar {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--brand); color: white;
+    padding: 2mm 4mm; display: flex; justify-content: space-between;
+    align-items: center; font-size: 10pt;
+  }
+  .toolbar button {
+    background: white; color: var(--brand); border: 0;
+    padding: 1.5mm 4mm; border-radius: 1mm; font-weight: 600;
+    cursor: pointer; font-size: 10pt;
+  }
+  .toolbar button:hover { background: #f3f4f6; }
+
+  /* Section spacing on cover */
+  .cover-meta {
+    display: flex; gap: 4mm; flex-wrap: wrap;
+    margin: 3mm 0;
+    color: var(--muted); font-size: 9.5pt;
+  }
+  .cover-meta span {
+    background: var(--code-bg); padding: 0.5mm 2mm; border-radius: 1mm;
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar no-print">
+  <strong>Supervisor Meeting Cheat Sheet · MicroClimate-X</strong>
+  <button onclick="window.print()">🖨 Print / Save as PDF</button>
+</div>
+
+<main>
+
+<h1>Supervisor Meeting Cheat Sheet
+  <span class="zh">导师开会一页通 — MicroClimate-X 答辩准备</span>
+</h1>
+
+<div class="cover-meta">
+  <span>📅 2026-05-11</span>
+  <span>🎓 UKM FYP</span>
+  <span>🏛️ KyoukoLi/microclimate-x</span>
+  <span>✅ CI passing · 97% coverage · 70 tests</span>
+</div>
+
+<div class="callout tip">
+  <div class="callout-title">How to use this cheat sheet · 怎么用这份小抄</div>
+  Keep this open on screen during the meeting. Don't read it aloud — glance at the relevant section when needed. Every key sentence is provided in both English and Chinese so you can default to whichever the supervisor speaks at that moment.
+  <br><br>
+  开会时打开在屏幕上做兜底。<strong>不要照念</strong>——需要时扫一眼对应小节。所有关键句子都给了中英对照，老师用什么语言你就用什么语言。
+</div>
+
+<!-- ===== Section 0: pre-meeting prep ===== -->
+<h2>0 · Before the meeting (10 min before)
+  <span class="zh">会前 10 分钟准备</span>
+</h2>
+
+<p>Run these in a terminal, in order. <strong>Do not skip any.</strong><br>
+在终端按顺序执行，<strong>一条都不能少</strong>：</p>
+
+<pre><code>cd ~/Projects/microclimate-x
+
+# 1. Pull latest + verify clean working tree
+git pull &amp;&amp; git status        # should print "working tree clean"
+
+# 2. Start the backend (leave running)
+make run                      # uvicorn boots on http://localhost:8000
+
+# 3. In a NEW terminal: verify API is alive + model is loaded
+curl -s http://localhost:8000/api/health | python3 -m json.tool
+# expect: "status": "ok", "ml_loaded": true</code></pre>
+
+<h3>Browser tabs — open in this exact order / 浏览器按顺序开标签页</h3>
+
+<table class="tabs">
+  <tr><th>#</th><th>URL</th><th>Purpose</th></tr>
+  <tr><td>1</td><td><code>file:///…/docs/MEETING_CHEAT_SHEET.html</code></td><td>This cheat sheet (safety net)</td></tr>
+  <tr><td>2</td><td><code>github.com/KyoukoLi/microclimate-x</code></td><td>Green CI badge</td></tr>
+  <tr><td>3</td><td><code>docs/dataset.md</code></td><td>For Concern #1 + #2</td></tr>
+  <tr><td>4</td><td><code>figures/01_roc_curve.png</code></td><td>Concern #4 — ML metrics</td></tr>
+  <tr><td>5</td><td><code>figures/03_calibration_curve.png</code></td><td>Calibration</td></tr>
+  <tr><td>6</td><td><code>figures/04_threshold_sweep.png</code></td><td>F2 threshold</td></tr>
+  <tr><td>7</td><td><code>figures/05_feature_importance.png</code></td><td>What model learned</td></tr>
+  <tr><td>8</td><td><code>docs/architecture.md</code></td><td>Rule engine deep-dive</td></tr>
+  <tr><td>9</td><td><code>http://localhost:8000/app/</code></td><td><strong>THE APP — OPEN LAST</strong></td></tr>
+  <tr><td>10</td><td><code>models/MODEL_CARD.md</code></td><td>Q&amp;A backup</td></tr>
+</table>
+
+<div class="callout warn">
+  <strong>🚨 Tab 9 must be opened LAST.</strong> If you accidentally show the app first, the supervisor will instantly remember last meeting's complaint ("app is last") and you lose credibility before you've said a word.<br>
+  <strong>🚨 标签 9（app）一定要最后打开。</strong>不小心先打开 app，老师会立刻想起上次 "app is last" 的批评——还没开口就掉分。
+</div>
+
+<!-- ===== Section 1: Opening ===== -->
+<h2>1 · Opening (30 seconds)
+  <span class="zh">开场 30 秒</span>
+</h2>
+
+<table class="bilingual">
+  <tr>
+    <td class="en">"Sir, since our last meeting I have addressed every point of your feedback. May I walk you through them in the correct order — <strong>dataset first, then model, then app</strong> — as you instructed?"</td>
+    <td class="zh">"老师，按您上次反馈，我已经把每一条都改了。我按您要求的顺序——<strong>先 dataset，再 model，最后才是 app</strong>——给您过一遍可以吗？"</td>
+  </tr>
+</table>
+
+<div class="callout ok">
+  <strong>Why this works · 为什么有效</strong>: it directly quotes his words back to him. Watch him relax immediately.<br>
+  直接复述了他自己的话——看着他立刻放松。
+</div>
+
+<!-- ===== Section 2: Concern #1 ===== -->
+<h2 class="pb">2 · Concern #1 — "Y is missing"
+  <span class="zh">反馈一 · Y 列缺失</span>
+</h2>
+
+<div class="quote">"Y is missing. I don't have the output variable. If you don't have target, you cannot train a machine learning model."</div>
+
+<h3>On screen → Tab 3 (<code>docs/dataset.md</code>) → §5 Target label derivation</h3>
+
+<pre><code class="python">df['is_rain_event'] = (df['precipitation'].shift(-1) &gt; 0.1).astype(int)</code></pre>
+
+<table class="bilingual">
+  <tr>
+    <td class="en">"Sir, you were right — the raw Open-Meteo CSV has no Y column. I have engineered the target explicitly. The variable is <code>is_rain_event</code>: <strong>1 if precipitation in the next hour exceeds 0.1 mm, else 0</strong>."</td>
+    <td class="zh">"老师您说得对，原始 CSV 没有 Y 列。我现在显式构造了目标变量 <code>is_rain_event</code>——<strong>下一小时降雨量 &gt; 0.1 mm 则为 1，否则为 0</strong>。"</td>
+  </tr>
+  <tr>
+    <td class="en">"Three things: <strong>(1)</strong> <code>.shift(-1)</code> uses <strong>future</strong> rain as label — features at hour t predict outcome at t+1h, so no temporal data leakage."</td>
+    <td class="zh">"三个要点：<strong>(1)</strong> <code>.shift(-1)</code> 表示用<strong>下一小时</strong>的降雨作标签，特征是 t 时刻、预测 t+1 小时——<strong>无时间泄漏</strong>。"</td>
+  </tr>
+  <tr>
+    <td class="en"><strong>(2)</strong> "0.1 mm matches the <strong>WMO definition of trace precipitation</strong> — not an arbitrary choice."</td>
+    <td class="zh"><strong>(2)</strong> "0.1 mm 这个阈值不是我随便定的，对应 <strong>WMO 微量降水标准</strong>。"</td>
+  </tr>
+  <tr>
+    <td class="en"><strong>(3)</strong> "It is <strong>binary classification</strong>, not regression, because the downstream user decision is binary — go or no-go."</td>
+    <td class="zh"><strong>(3)</strong> "是<strong>二分类</strong>不是回归，因为下游用户决策本身就是二元的——去 / 不去。"</td>
+  </tr>
+</table>
+
+<!-- ===== Section 3: Concern #2 ===== -->
+<h2>3 · Concern #2 — "Features don't match Excel"
+  <span class="zh">反馈二 · 文档特征和 CSV 列名对不上</span>
+</h2>
+
+<div class="quote">"The features that you presented here, not... not mentioned in the Excel. So, it must be matched."</div>
+
+<h3>On screen → stay on Tab 3 → scroll <em>up</em> to §4 Schema</h3>
+
+<table class="bilingual">
+  <tr>
+    <td class="en">"Sir, that was also fair. I have rewritten the dataset specification so the documentation lists <strong>exactly the same column names</strong> as the CSV. One-to-one mapping in §4."</td>
+    <td class="zh">"老师，这条您也说得对。我已经重写了数据集文档——文档列出的就是 CSV 里的<strong>真实列名</strong>，一一对应，就在第 4 节。"</td>
+  </tr>
+  <tr>
+    <td class="en">"Every row is one CSV column. The 'role' column says whether it is a feature (<strong>X</strong>), the target (<strong>Y</strong>), or metadata."</td>
+    <td class="zh">"表里每一行就是 CSV 一列，role 列写明它是 feature（<strong>X</strong>）、target（<strong>Y</strong>）还是 metadata。"</td>
+  </tr>
+</table>
+
+<!-- ===== Section 4: Concern #3 ===== -->
+<h2>4 · Concern #3 — "Study the data source"
+  <span class="zh">反馈三 · 研究数据源本身</span>
+</h2>
+
+<div class="quote">"Please study the link. What is the purpose of the dataset? What is design for? What is the output variable?"</div>
+
+<h3>On screen → stay on Tab 3 → scroll up to §1-3</h3>
+
+<table class="bilingual">
+  <tr>
+    <td class="en">"I read Open-Meteo's documentation carefully. The dataset is the <strong>ERA5 reanalysis archive</strong> — ECMWF's gold-standard hourly reanalysis."</td>
+    <td class="zh">"我把 Open-Meteo 文档仔细读了。我用的是 <strong>ERA5 再分析数据</strong>，ECMWF 出的金标准同化产品。"</td>
+  </tr>
+  <tr>
+    <td class="en">"It is <strong>not a forecast</strong> — it is a physically-consistent reconstruction of past weather. ECMWF themselves use ERA5 to <strong>validate other forecast models</strong>. That makes it the right dataset for ML training: <strong>reliable ground-truth labels</strong>."</td>
+    <td class="zh">"它<strong>不是</strong>预报，是对过去天气的物理一致重建。ECMWF 自己拿 ERA5 去<strong>校验别的预报模型</strong>——所以训练 ML 是合适的，<strong>标签是可靠的 ground truth</strong>。"</td>
+  </tr>
+  <tr>
+    <td class="en"><strong>Spatial</strong>: 5 Malaysian mountain sites — Genting, Cameron, Fraser's Hill, Klang Valley, Kinabalu — elevations 100 m to 1865 m, terrain from valley to slope.</td>
+    <td class="zh"><strong>空间</strong>：5 个马来西亚山地点位——云顶、金马仑、福隆港、巴生谷、神山——海拔 100 m – 1865 m，地形从山谷到山坡。</td>
+  </tr>
+  <tr>
+    <td class="en"><strong>Temporal</strong>: 5 years, hourly, 175 315 rows total.</td>
+    <td class="zh"><strong>时间</strong>：5 年，每小时一行，总共 175 315 行。</td>
+  </tr>
+</table>
+
+<!-- ===== Section 5: Concern #4 ===== -->
+<h2 class="pb">5 · Concern #4 — "App is the last"
+  <span class="zh">反馈四 · App 最后做（最重要！）</span>
+</h2>
+
+<div class="quote">"First identify a dataset. And then train the model. And then predict it. Once everything is finished, you can develop the app. <strong>App is the last.</strong>"</div>
+
+<div class="callout warn">
+  <strong>🚨 This is the most important section.</strong> Pace yourself — 2-3 min total. <strong>Don't open the app until the end.</strong><br>
+  <strong>🚨 这是最重要的一节。</strong>控制节奏，总共 2-3 分钟。<strong>不要提前打开 app。</strong>
+</div>
+
+<div class="step">
+  <div class="num">2a</div>
+  <div class="body">
+    <strong>→ Tab 4 (<code>figures/01_roc_curve.png</code>)</strong>
+    <table class="bilingual">
+      <tr>
+        <td class="en">"Step 2, model training. Test ROC AUC is <strong>0.871</strong> on 35 063 held-out hourly samples. Hold-out is the <strong>last 20 % chronologically</strong>, not random — random splits leak temporal autocorrelation and inflate accuracy by 5-15 pp."</td>
+        <td class="zh">"第二步，模型训练。测试集 35 063 行，<strong>ROC AUC = 0.871</strong>。划分用<strong>按时间排序的最后 20%</strong>，不是随机——随机划分会泄漏时间自相关，把准确率虚高 5-15 个百分点。"</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2b</div>
+  <div class="body">
+    <strong>→ Tab 5 (<code>figures/03_calibration_curve.png</code>)</strong>
+    <table class="bilingual">
+      <tr>
+        <td class="en">"Brier score <strong>0.138</strong> — predicted probabilities are well-calibrated. When the model says 70 %, the actual rate is close to 70 %. No need for Platt scaling or isotonic post-hoc."</td>
+        <td class="zh">"Brier 分数 = <strong>0.138</strong>，预测概率<strong>校准良好</strong>——模型说 70% 时实际频率接近 70%。<strong>不需要</strong> Platt scaling 或 isotonic 校准。"</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2c</div>
+  <div class="body">
+    <strong>→ Tab 6 (<code>figures/04_threshold_sweep.png</code>)</strong>
+    <table class="bilingual">
+      <tr>
+        <td class="en">"I optimised for <strong>F2 score</strong>, not F1 — this is safety-critical, a missed rain event on a windward slope can cause flash flooding. False negatives are far worse than false positives. F2 weights recall 4× over precision. Optimal τ = <strong>0.20</strong>, F2 = 0.778, <strong>recall 93.4 %</strong>."</td>
+        <td class="zh">"我用 <strong>F2 分数</strong>而不是 F1——安全关键场景，<strong>漏报</strong>比误报严重得多。F2 把召回权重设为精度的 4 倍。最优阈值 τ = <strong>0.20</strong>，F2 = 0.778，<strong>召回率 93.4%</strong>。"</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2d</div>
+  <div class="body">
+    <strong>→ Tab 7 (<code>figures/05_feature_importance.png</code>)</strong>
+    <table class="bilingual">
+      <tr>
+        <td class="en">"Top 3 features: previous-hour rain, time-of-day cyclic encoding, 3-hour pressure tendency. These match the meteorology literature — autocorrelation, diurnal cycle, storm precursor. <strong>The model learned physically meaningful signal</strong>."</td>
+        <td class="zh">"最重要的 3 个特征：上一小时降水、时间周期编码、3 小时气压变化——<strong>跟气象文献吻合</strong>：自相关、日变化、风暴前兆。<strong>模型学到的是物理上有意义的信号</strong>。"</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <strong>→ Tab 9 (<code>http://localhost:8000/app/</code>) — FINALLY the app</strong>
+    <table class="bilingual">
+      <tr>
+        <td class="en">"<strong>Now</strong>, Step 3, the app. FastAPI + Vue using the trained model from Step 2 — not a separate model, not a placeholder. Click any coordinate, the system returns the probability and four hazard sub-scores per proposal §3.7."</td>
+        <td class="zh">"<strong>现在</strong>第三步，app。FastAPI + Vue 调用刚才<strong>第二步训好的模型</strong>——不是另一个模型、不是占位符。点地图任意一点，系统返回概率和四个分项灾害评分（按开题 §3.7）。"</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="demo">
+  <div class="demo-title">🇲🇾 Demo A — Genting Highlands (in-distribution)</div>
+  <ol>
+    <li>Click <strong>🇲🇾 Genting Highlands · slope</strong> in the scenario dropdown (top right)</li>
+    <li>Wait ~1 second for the loading spinner</li>
+    <li>Point to the <strong>risk gauge</strong> (the main number)</li>
+    <li>Point to the <strong>4 mini-gauges</strong> below (rainfall / fog / wind / thunderstorm)</li>
+  </ol>
+  <table class="bilingual">
+    <tr>
+      <td class="en">"Genting is 1865 m slope. Model gives moderate rain probability, rule engine detects orographic lift on the windward side, composite reflects both. The 4 mini-gauges decompose risk by hazard type — user knows whether to worry about rain, fog, wind, or thunder specifically."</td>
+      <td class="zh">"云顶 1865 m 山坡。模型给出中等降雨概率，规则引擎检测到迎风坡地形抬升，最终评分综合两者。4 个 mini-gauge 把风险按类型拆解——用户清楚该担心降雨、雾、风、还是雷暴。"</td>
+    </tr>
+  </table>
+</div>
+
+<div class="demo">
+  <div class="demo-title">🏔️ Demo B — Mt Everest (OUT-OF-DISTRIBUTION STRESS TEST)</div>
+  <ol>
+    <li>Click <strong>🏔️ Mt Everest · 8 848 m (OOD)</strong> in the dropdown</li>
+    <li>Wait for the result</li>
+    <li>Point to the <strong>Veto triggers</strong> section (red box)</li>
+  </ol>
+  <table class="bilingual">
+    <tr>
+      <td class="en">"<strong>This is the critical test.</strong> The model was trained only on Malaysian mountains — it has never seen anything above 2000 m. A pure ML system would give a low probability here and falsely return 'safe'. <strong>A hiker could die.</strong>"</td>
+      <td class="zh">"<strong>这是关键测试</strong>。模型只在马来西亚山地训练过——从未见过 2000 m 以上的地点。<strong>纯 ML 系统</strong>会给出低概率然后错误地返回"安全"——<strong>登山者可能因此遇难</strong>。"</td>
+    </tr>
+    <tr>
+      <td class="en">"But the hybrid architecture intervenes: the Veto cascade fires three overrides — altitude &gt; 3500 m triggers hypoxia veto, temperature ≤ −5 °C triggers frostbite veto, wind ≥ 40 km/h triggers gale veto. Composite is <strong>forced to 100 = Danger</strong>, regardless of the ML output. <strong>This is exactly the OOD safety net the rule engine provides.</strong>"</td>
+      <td class="zh">"但混合架构介入了：<strong>Veto 级联触发了三个否决</strong>——海拔 &gt; 3500 m（缺氧）、温度 ≤ −5°C（冻伤）、风速 ≥ 40 km/h（大风）。无论 ML 输出什么，综合评分<strong>被强制设为 100 = Danger</strong>。<strong>这就是规则引擎对 OOD 输入的安全网作用</strong>。"</td>
+    </tr>
+  </table>
+  <div class="callout ok" style="margin-top: 2mm;">
+    🎯 <strong>The Everest demo is your strongest defensive argument.</strong> Pre-tested in <code>tests/test_rule_engine.py::test_mt_everest_veto_hypoxia</code>.<br>
+    🎯 <strong>珠峰演示是你最强的辩护点</strong>。有单元测试覆盖（<code>test_mt_everest_veto_hypoxia</code>）。
+  </div>
+</div>
+
+<!-- ===== Section 6: Concern #5 ===== -->
+<h2 class="pb">6 · Concern #5 — "Regression or classification?"
+  <span class="zh">反馈五 · 回归还是分类</span>
+</h2>
+
+<div class="quote">"I don't think this is a classification problem because there is no class label. So I think this is a regression problem."</div>
+
+<table class="bilingual">
+  <tr>
+    <td class="en">"Sir, when you first looked at the raw CSV, no class label existed — regression seemed the only option. I considered both. I chose <strong>binary classification</strong> for three reasons:"</td>
+    <td class="zh">"老师，您当时看 CSV 没有 class label，看上去像 regression。我两个都考虑过，最后选了<strong>二分类</strong>，三个理由："</td>
+  </tr>
+  <tr>
+    <td class="en"><strong>(1)</strong> "Downstream decision is binary — go outside or don't. Regressing mm of rain would still need a threshold to convert to go/no-go — I would have to pick the threshold anyway."</td>
+    <td class="zh"><strong>(1)</strong> "下游决策本身就是二元——出门 vs 不出门。即使回归预测毫米数，最后也要拿阈值转成 go/no-go——<strong>那个阈值反正要选</strong>。"</td>
+  </tr>
+  <tr>
+    <td class="en"><strong>(2)</strong> "Classification lets me optimise <strong>F2 score</strong> directly — the right metric for safety-critical recall. I cannot directly optimise F2 on a regression target."</td>
+    <td class="zh"><strong>(2)</strong> "做分类才能直接优化 <strong>F2 分数</strong>——安全关键场景下召回比精度更重要，<strong>这个指标只在分类任务下有意义</strong>。"</td>
+  </tr>
+  <tr>
+    <td class="en"><strong>(3)</strong> "But I still expose the <strong>raw probability</strong> in the API response — any downstream component that needs a continuous score (e.g. the rule engine's rainfall sub-scorer) can still use it. <strong>Best of both worlds.</strong>"</td>
+    <td class="zh"><strong>(3)</strong> "但 API 还是把<strong>原始概率</strong>暴露出来——下游需要连续分数的组件（例如规则引擎的降雨子评分器）照样能用。<strong>两全其美。</strong>"</td>
+  </tr>
+</table>
+
+<!-- ===== Section 7: Q&A ===== -->
+<h2>7 · Anticipated Q&amp;A
+  <span class="zh">老师可能追问</span>
+</h2>
+
+<h3>Q1 — "Why Random Forest and not deep learning / LSTM?" / 为什么不是深度学习？</h3>
+<table class="bilingual">
+  <tr><td class="en">"Three reasons. <strong>(1)</strong> Interpretability — feature importance lets me defend predictions. Essential for safety-critical. Neural net is a black box."</td><td class="zh">"三个理由：<strong>(1)</strong> <strong>可解释性</strong>——feature importance 让我能为每个预测辩护，安全关键应用必须，神经网络是黑盒。"</td></tr>
+  <tr><td class="en"><strong>(2)</strong> "Data efficiency — with 175 K samples, RF reaches state-of-the-art. LSTM would need an order of magnitude more data to outperform it."</td><td class="zh"><strong>(2)</strong> "<strong>数据效率</strong>——17 万样本下 RF 已经 SOTA，LSTM 需要至少 10 倍数据才能超过它。"</td></tr>
+  <tr><td class="en"><strong>(3)</strong> "Inference latency — RF inference is sub-millisecond, our FastAPI+cache architecture depends on it. LSTM would be 10× slower and need GPU at inference."</td><td class="zh"><strong>(3)</strong> "<strong>推理延迟</strong>——RF 推理 &lt; 1 ms，FastAPI+缓存架构依赖这一点；LSTM 至少慢 10 倍且推理时需要 GPU。"</td></tr>
+</table>
+
+<h3>Q2 — "How do you handle out-of-distribution input?" / 分布外输入怎么处理？</h3>
+<div class="callout tip"><strong>→ Just show the Mt Everest demo from §5.</strong> That IS the answer. Don't theorise — let the system speak.<br>
+<strong>→ 直接展示第 5 节的珠峰 demo</strong>。那就是答案。不要讲理论——让系统说话。</div>
+
+<h3>Q3 — "What is the rule engine's contribution? Could you just use ML alone?" / 规则引擎的贡献？只用 ML 不行吗？</h3>
+<table class="bilingual">
+  <tr><td class="en">"Pure ML is statistical — learns averages. But terrain in complex mountains amplifies precipitation locally by <strong>orders of magnitude</strong> (Roe 2005, Annual Rev Earth &amp; Planetary Sciences)."</td><td class="zh">"纯 ML 是统计性的——学的是平均值。但复杂山地的地形把降水<strong>局部放大几个数量级</strong>（Roe 2005, Annual Rev Earth &amp; Planetary Sciences）。"</td></tr>
+  <tr><td class="en">"R1 in our decision table captures exactly this: when macro rain probability is low <strong>but</strong> wind impinges on a windward slope with falling pressure, hidden rain risk emerges. ML would say 'safe'; rule engine fires R1 and warns."</td><td class="zh">"决策表 R1 抓的就是这点：宏观降雨概率低、<strong>但</strong>风正对迎风坡且气压下降时——<strong>存在隐藏的降雨风险</strong>。ML 会说"安全"；规则引擎触发 R1 警告。"</td></tr>
+  <tr><td class="en">"This is the <strong>Neuro-Symbolic AI</strong> paradigm — learn what is learnable, hand-code what is physical."</td><td class="zh">"这就是 <strong>Neuro-Symbolic AI</strong> 范式——能学的让 ML 学，物理规律手工编码。"</td></tr>
+</table>
+
+<h3>Q4 — "Cross-validation? Overfitting check?" / 交叉验证？过拟合？</h3>
+<table class="bilingual">
+  <tr><td class="en">"Yes, Sir. <strong>Time-series 5-fold CV</strong> on the training portion — not random K-fold (would leak temporal info)."</td><td class="zh">"做了老师，<strong>时间序列 5 折交叉验证</strong>——不是随机 K 折（会泄漏时间信息）。"</td></tr>
+  <tr><td class="en">"Fold AUCs range 0.828 to 0.908, mean ≈ 0.858 — close to held-out test AUC 0.871. <strong>Confirms no overfitting to a single temporal slice.</strong>"</td><td class="zh">"各折 AUC 0.828–0.908，均值约 0.858——跟独立测试集 AUC 0.871 非常接近。<strong>没有对某个时间段过拟合</strong>。"</td></tr>
+  <tr><td class="en">"All in <code>models/training_report.json</code> and the model card."</td><td class="zh">"全部在 <code>models/training_report.json</code> 和 model card 里。"</td></tr>
+</table>
+
+<h3>Q5 — "Real-world validation plan?" / 真实世界怎么验证？</h3>
+<table class="bilingual">
+  <tr><td class="en">"Chapter 5: two-pronged. <strong>(1) Hindcast validation</strong> — replay against publicly documented Malaysian floods/landslides from NaDMA archives; check if system would have produced Warning/Danger at the right time."</td><td class="zh">"Chapter 5 两条腿走路：<strong>(1) 历史事件回放</strong>——用 NaDMA 公开的马来西亚洪水/滑坡事件，看系统在事件发生时是否会给出 Warning 或 Danger。"</td></tr>
+  <tr><td class="en"><strong>(2) User study</strong> — small panel of mountain hikers compare system's recommendations to their own field judgment over one month. <strong>Both are standard practice in operational meteorology.</strong></td><td class="zh"><strong>(2) 用户研究</strong>——找一小批登山者，一个月内对比系统建议和他们自己的判断。<strong>两种方法都是业务气象学界标准做法</strong>。</td></tr>
+</table>
+
+<h3>Q6 — "Risk levels Safe/Caution/Warning/Danger?" / 四个等级怎么定？</h3>
+<table class="bilingual">
+  <tr><td class="en">"Thresholds 30 / 55 / 80 on 0-100 composite. Calibrated so the <strong>mean output across training data</strong> falls in mid-Caution — system uses full dynamic range. Each level maps to a different recommended action in bilingual advice."</td><td class="zh">"阈值 0-100 综合分上的 30 / 55 / 80。校准依据：<strong>训练集平均输出</strong>正好落在 Caution 区间中部——系统能用满整个动态范围。每个等级对应不同的双语建议行动。"</td></tr>
+</table>
+
+<h3>Q7 — "What if model or API fails in production?" / 生产环境挂了怎么办？</h3>
+<table class="bilingual">
+  <tr><td class="en">"<strong>Three layers of graceful degradation.</strong> (1) Model load fails → physics-motivated heuristic. (2) Internal exception → typed <code>ErrorResponse</code> JSON. (3) Rule engine's Veto cascade runs <strong>independently</strong> of ML — even if ML returns garbage, safety thresholds still fire."</td><td class="zh">"<strong>三层降级：</strong>(1) 模型加载失败→<strong>物理启发式</strong>。(2) 内部异常→<strong>类型化的 <code>ErrorResponse</code> JSON</strong>。(3) <strong>规则引擎 Veto 级联独立于 ML</strong>——即使 ML 返回乱码，安全阈值仍触发。"</td></tr>
+</table>
+
+<!-- ===== Section 8: Closing ===== -->
+<h2 class="pb">8 · Closing (30 seconds)
+  <span class="zh">收尾 30 秒</span>
+</h2>
+
+<table class="bilingual">
+  <tr>
+    <td class="en">"Sir, to summarise: I have addressed every point of your feedback. The missing Y is now derived. Documentation matches the data. Model is trained and evaluated <strong>before</strong> the app. Choice of classification over regression is justified by the safety-critical nature of the application."</td>
+    <td class="zh">"老师，总结一下：您每条反馈我都已经回应——Y 已经构造好、文档跟数据完全对齐、模型在 app <strong>之前</strong>就训好并评估过、分类而不是回归是因为应用本身就是安全关键。"</td>
+  </tr>
+  <tr>
+    <td class="en">"Code is on GitHub at <code>KyoukoLi/microclimate-x</code>, CI passing, 97 % test coverage, published model card. <strong>May I have your guidance on the next priorities for Chapter 5?</strong>"</td>
+    <td class="zh">"代码在 GitHub <code>KyoukoLi/microclimate-x</code>，CI 全过、测试覆盖率 97%、有完整的 model card。<strong>请问 Chapter 5 接下来您建议我重点做哪部分？</strong>"</td>
+  </tr>
+</table>
+
+<!-- ===== Section 9: Psychology ===== -->
+<h2>9 · Psychological reminders
+  <span class="zh">心理建设 · 老师真正在意什么</span>
+</h2>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <strong>Did you LISTEN to him? / 你听进去他的话了吗？</strong><br>
+    He asked "Do you understand my English?" multiple times. Reassure him by <strong>quoting his exact words back</strong> ("as you instructed: dataset first, then model, then app").<br>
+    他反复问 "Understand my English?" 用<strong>复述他原话</strong>让他放心。
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <strong>Do you understand basic ML? / 你懂 ML 基础吗？</strong><br>
+    He explained X/Y, rows/columns, "if-then is the target" — patiently, like a tutor. <strong>Don't open with hybrid / neuro-symbolic / TPI / CAPE.</strong> Start with: dataset, target, feature, train, predict. <strong>Earn the right</strong> to use fancy vocabulary by first speaking his language.<br>
+    <strong>不要上来就抛 hybrid、neuro-symbolic、TPI、CAPE。</strong>先用他的词汇：dataset、target、feature、train、predict。<strong>先证明你懂基础</strong>再升级。
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <strong>Did you follow his process? / 你按他的流程做了吗？</strong><br>
+    "App is the last" — he said it <strong>three times</strong>. The visual order in which you open tabs IS the answer. <strong>No app until the very end.</strong><br>
+    "app is the last" 他说了三次。<strong>你打开标签页的顺序就是答案</strong>。<strong>绝对不要提前打开 app。</strong>
+  </div>
+</div>
+
+<h3>Defensive lines if you get stuck / 答不出来时的兜底话术</h3>
+<table>
+  <tr><th>Situation</th><th>EN</th><th>ZH</th></tr>
+  <tr>
+    <td>Don't know answer</td>
+    <td>"That is a good question, Sir. I haven't fully worked out the answer yet — may I prepare a written response by next meeting?"</td>
+    <td>"老师这是个好问题，我还没完全想清楚——能否下次开会前给您一份书面回复？"</td>
+  </tr>
+  <tr>
+    <td>He challenges a threshold</td>
+    <td>"Sir, the threshold is documented in <code>docs/thresholds.md</code> with the academic citation. Let me open it."</td>
+    <td>"老师，这个阈值的学术引用在 <code>docs/thresholds.md</code> 里，我打开给您看。"</td>
+  </tr>
+  <tr>
+    <td>"This doesn't match what I expected"</td>
+    <td>"Yes Sir — that is exactly what I want to confirm with you. Could you describe what you expected, so I can align?"</td>
+    <td>"老师<strong>这正是我想跟您确认的点</strong>——能否说说您预期的样子？我好对齐。"</td>
+  </tr>
+</table>
+
+<!-- ===== Section 10: Backup ===== -->
+<h2>10 · Backup plan / 设备出问题的备份方案</h2>
+
+<table>
+  <tr><th>Problem</th><th>Fallback</th><th>中文</th></tr>
+  <tr><td>WiFi down</td><td>Synthetic dataset works offline — <code>make synth</code> already ran</td><td>合成数据集已经跑过，本地能演</td></tr>
+  <tr><td><code>make run</code> fails</td><td>Show GitHub repo with green CI badge — same artefacts visible there</td><td>直接给 GitHub repo 看 CI 绿勾，artefact 一样能看</td></tr>
+  <tr><td>Demo doesn't load</td><td>Use cached responses — recent results in <code>cache.sqlite3</code></td><td>用缓存的结果——最近查询都在 <code>cache.sqlite3</code> 里</td></tr>
+  <tr><td>Browser crashes</td><td>Open this cheat sheet on your phone — every key number is here</td><td>手机打开这份 cheat sheet——所有关键数字都在</td></tr>
+</table>
+
+<!-- ===== Section 11: Pre-flight ===== -->
+<h2>11 · Pre-flight checklist (60 seconds before)
+  <span class="zh">起飞前最后 60 秒自检</span>
+</h2>
+
+<div class="check">
+  <div><span class="box">☐</span> Laptop ≥ 80 % battery, charger in bag / 笔记本电池 ≥ 80%，充电器在包里</div>
+  <div><span class="box">☐</span> <code>make run</code> is running in a terminal (don't close it!) / <code>make run</code> 在另一个终端跑着（不要关！）</div>
+  <div><span class="box">☐</span> <code>/api/health</code> returns <code>ml_loaded: true</code> / <code>/api/health</code> 返回 <code>ml_loaded: true</code></div>
+  <div><span class="box">☐</span> All 10 browser tabs open in correct order (app is LAST) / 10 个标签页按顺序开好（app 在最后）</div>
+  <div><span class="box">☐</span> This cheat sheet open on screen — but NOT to be read word-for-word / 这份 cheat sheet 开着，但不要照念</div>
+  <div><span class="box">☐</span> Phone on silent / 手机静音</div>
+  <div><span class="box">☐</span> Deep breath. You have done the work. / 深呼吸。你已经做完了所有该做的工作。</div>
+</div>
+
+<footer>
+  Generated 2026-05-11 · MicroClimate-X · KyoukoLi/microclimate-x ·
+  CI passing · 97 % coverage · 70 tests
+  <br>
+  此页为 2026-05-11 UKM 毕业设计 MicroClimate-X 导师答辩准备文档
+</footer>
+
+</main>
+
+</body>
+</html>
