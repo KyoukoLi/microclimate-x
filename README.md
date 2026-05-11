@@ -15,6 +15,17 @@
 
 A Final Year Project at **Universiti Kebangsaan Malaysia (UKM)** — Faculty of Information Science & Technology.
 
+### For thesis supervisors / 导师阅读路径
+
+| Step | Document | What it shows |
+|---|---|---|
+| 1. Dataset | [`docs/dataset.md`](docs/dataset.md) | Source · schema · **Y derivation** · train/test split |
+| 2. Model   | [`models/MODEL_CARD.md`](models/MODEL_CARD.md) | Intended use · metrics · limitations · ethics |
+| 3. Evaluation | [`figures/`](figures/) + [`figures/evaluation_summary.json`](figures/evaluation_summary.json) | 6 publication figures, all reproducible via `make evaluate` |
+| 4. Architecture | [`docs/architecture.md`](docs/architecture.md) + [`docs/thresholds.md`](docs/thresholds.md) | Hybrid engine, every threshold cited |
+| 5. Pipeline order | [`docs/pipeline_order.md`](docs/pipeline_order.md) | Explicit "dataset → model → app" sequence |
+| 6. Meeting brief | [`docs/supervisor_meeting_brief.md`](docs/supervisor_meeting_brief.md) | One-page bilingual EN/ZH script |
+
 ---
 
 ## 1. Problem Statement / 痛点
