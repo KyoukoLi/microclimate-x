@@ -101,24 +101,45 @@ open frontend/index.html   # macOS
 # or just double-click frontend/index.html
 ```
 
-### Sample training output (synthetic dataset) / 训练样例输出
+### Training results on real ERA5 data / 真实 ERA5 数据训练结果
 
-The pipeline above is fully end-to-end validated. On the synthetic dataset
-(`scripts/1b_synth_dataset.py`, 175 315 samples) the Random Forest yields:
+Trained on **175 315 hourly samples** from Open-Meteo Historical Archive
+(ECMWF ERA5 reanalysis) covering five Malaysian mountain sites,
+2020-01-01 → 2023-12-31. Time-based split: last 20 % per site held out.
 
 | Metric | Value |
 |---|---|
-| Test AUC      | **0.755** |
-| Test F1 (rain) | 0.567 |
-| Test F2 (rain) | **0.621** (we prefer F2 — recall matters more for safety) |
-| Recall (rain)  | 0.663 |
-| Class balance  | 26.0 % positive |
+| Test AUC      | **0.871** |
+| Test F1 (rain) | 0.686 |
+| Test F2 (rain) | **0.724** (we prefer F2 — recall matters more for safety) |
+| Recall (rain)  | 0.751 |
+| Precision (rain) | 0.631 |
+| Class balance  | 30.8 % positive (matches Malaysian mountain climatology) |
 
-Top feature importances reflect the synthetic generator's design choices:
-`cloud_cover_pct`, `month_sin`/`month_cos` (monsoon seasonality), and
-`temperature_c` dominate. On real ERA5 data we expect AUC ≥ 0.80 and the
-relative ranking of `pressure_change_3h`, `cape_jkg`, and
-`precipitation_lag_1h` to rise significantly.
+**5-fold time-series CV** on the training fold gives AUC ranging
+0.828-0.908 (mean ≈ 0.858), confirming the model is not over-fitting a
+single temporal slice.
+
+#### Feature importance — what the model actually learned
+
+| Rank | Feature | Importance | Interpretation |
+|---|---|---|---|
+| 1 | `precipitation_lag_1h` | 37.1 % | Rain autocorrelation — the well-documented "rain begets rain" persistence signal in short-term nowcasting (Wilson et al., 2010). |
+| 2-3 | `hour_cos`, `hour_sin` | 18.6 % | Diurnal convective cycle — Malaysian mountain rainfall peaks in late afternoon. |
+| 4 | `pressure_change_3h` | 4.7 % | Falling pressure precedes incoming storms — the classical synoptic-scale precursor. |
+| 5-6 | `wind_v`, `dew_point_c` | 8.1 % | Moisture transport + saturation potential. |
+| 7-14 | other meteorological X | 22 % | T, humidity, cloud cover, wind, dew-point depression, pressure. |
+| 15-17 | `month_*`, `elevation_m` | 4 % | Low because the time-of-day and lag features already absorb most of the seasonal/static signal. |
+| 18 | `cape_jkg` | **0.0 %** | ⚠️ ERA5 archive CAPE values for these coordinates are predominantly zero — a known coverage gap. The Veto-rule engine still uses CAPE thresholds directly from the live Open-Meteo forecast at inference time. |
+
+#### Why F2 instead of accuracy?
+
+Accuracy is misleading on imbalanced safety-critical classification.
+A model that predicts "no rain" 100 % of the time achieves
+**69.2 % accuracy** here while being completely useless. F2 weights
+recall twice as heavily as precision, which is correct for a
+hiker-safety app where missing a real rain event (False Negative) is
+far worse than a false alarm (False Positive).
 
 See `models/training_report.json` for the full 5-fold CV report.
 
@@ -182,8 +203,7 @@ See `docs/thresholds.md` for the full citation table per Veto threshold.
 - [x] Bilingual (EN/ZH) advice generation
 - [x] Dataset download script (Open-Meteo + Open Topo Data) + offline synthetic fallback
 - [x] Preprocessing pipeline (feature engineering + label `is_rain_event`)
-- [x] Random Forest training with time-based CV — **end-to-end pipeline validated**
-- [ ] Retrain on real ERA5 data (currently demoed on synthetic data)
+- [x] Random Forest training with time-based CV — **trained on real ERA5 data, test AUC = 0.871**
 - [ ] Model comparison (RFC vs LogReg vs XGBoost) — thesis Chapter 5
 - [ ] Hindcast validation against real Malaysian flood events
 - [ ] PWA offline mode for low-network mountain use
