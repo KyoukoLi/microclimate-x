@@ -26,6 +26,16 @@ models/*.onnx
 *.sqlite3
 *.sqlite3-shm
 *.sqlite3-wal
+
+# Coverage + test artefacts
+.coverage
+coverage.xml
+htmlcov/
+
+# Generated figures — re-create with `make evaluate`
+# (we keep evaluation_summary.json + threshold_sweep.csv as audit trail)
+figures/*.png
+!figures/.gitkeep
 *.db-journal
 *.db-wal
 *.db-shm

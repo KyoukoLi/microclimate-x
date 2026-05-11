@@ -26,12 +26,36 @@
     .kbd { background:#1f2937; border:1px solid #374151; padding:1px 6px; border-radius:6px; font-size:11px; }
     .mini-gauge-svg { transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease; }
     .pill { padding: 4px 10px; border-radius: 999px; font-size: 11px; border:1px solid #374151;
-            color:#94a3b8; transition: background .15s, color .15s, border-color .15s; }
+            color:#94a3b8; transition: background .15s, color .15s, border-color .15s; cursor:pointer; }
     .pill:hover { color:#e2e8f0; }
+    .pill:focus-visible { outline: 2px solid #34d399; outline-offset: 2px; }
     .pill-active { background:#34d399; color:#052e2b; border-color:#34d399; font-weight:600; }
     .rule-badge { padding:2px 6px; font-size:10px; border-radius:6px; background:#1f2937;
                   border:1px solid #374151; color:#94a3b8; font-family: ui-monospace, monospace; }
     .rule-badge-fired { background: #422006; border-color: #b45309; color: #fbbf24; }
+
+    /* Loading spinner — overlays panels while a request is in flight. */
+    .spinner { width:18px; height:18px; border:2px solid #1f2937; border-top-color:#34d399;
+               border-radius:50%; animation: spin 0.75s linear infinite; display:inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast — bottom-right notification stack. */
+    #toast-host { position: fixed; bottom: 18px; right: 18px; z-index: 9999;
+                  display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { pointer-events: auto; min-width: 240px; max-width: 360px;
+             background:#1f2937; border:1px solid #374151; border-radius:10px;
+             padding: 10px 14px; color:#e2e8f0; font-size:12px;
+             box-shadow: 0 6px 16px rgba(0,0,0,.5);
+             animation: slideIn .25s ease-out; }
+    .toast-err { border-color: #b91c1c; background:#2a0f10; }
+    .toast-ok  { border-color: #047857; background:#062b22; }
+    @keyframes slideIn { from { transform: translateX(20px); opacity:0; } }
+
+    /* Mobile-first compaction. */
+    @media (max-width: 640px) {
+      .pill { padding: 3px 7px; font-size: 10px; }
+      .activity-bar { gap: 4px; }
+    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -45,12 +69,23 @@
           <div class="text-[11px] text-slate-500 mono">Hybrid Microclimate Risk Engine · UKM FYP</div>
         </div>
       </div>
-      <div class="flex items-center gap-3 flex-wrap">
+      <div class="flex items-center gap-3 flex-wrap activity-bar">
+        <!-- Demo scenarios -->
+        <select v-model="selectedScenario"
+                @change="onScenarioChange"
+                class="bg-slate-800 text-slate-200 border border-slate-700 rounded-md text-[11px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                :aria-label="t.scenarios">
+          <option value="" disabled>{{ t.scenarios }}</option>
+          <option v-for="s in SCENARIOS" :key="s.key" :value="s.key">{{ t.scenarioLabels[s.key] }}</option>
+        </select>
+
         <!-- Activity selector -->
         <div class="flex items-center gap-1">
           <span class="text-[11px] text-slate-500 mr-1 hidden md:inline">{{ t.activity }}</span>
           <button v-for="a in ACTIVITIES" :key="a"
                   @click="setActivity(a)"
+                  :aria-label="t.activities[a]"
+                  :aria-pressed="activity===a"
                   :class="['pill', activity===a && 'pill-active']">
             {{ t.activities[a] }}
           </button>
@@ -60,6 +95,7 @@
                                               lang==='en' ? 'bg-emerald-500/20 text-emerald-300 ring-emerald-500/40' : 'text-slate-400 hover:text-slate-200']">EN</button>
         <button @click="lang='zh'" :class="['px-2.5 py-1 rounded text-xs ring-1 ring-slate-700',
                                               lang==='zh' ? 'bg-emerald-500/20 text-emerald-300 ring-emerald-500/40' : 'text-slate-400 hover:text-slate-200']">中文</button>
+        <span v-if="loading" class="spinner ml-1" :title="t.loading"></span>
         <div class="hidden md:flex items-center text-[11px] text-slate-500 gap-2">
           <span class="kbd">click</span>
           <span>{{ t.clickHint }}</span>
@@ -124,7 +160,10 @@
             <span class="text-slate-600">P4.3 · P4.4</span>
           </div>
           <div class="grid grid-cols-4 gap-2">
-            <div v-for="h in HAZARDS" :key="h.key" class="flex flex-col items-center gap-1">
+            <div v-for="h in HAZARDS" :key="h.key"
+                 class="flex flex-col items-center gap-1"
+                 :title="t.hazardTooltip[h.key]"
+                 :aria-label="t.hazards[h.key] + ' ' + (display.hazard_subscores?.[h.key] ?? '?') + '/100'">
               <div class="relative w-14 h-14">
                 <svg viewBox="0 0 60 60" class="w-full h-full -rotate-90">
                   <circle cx="30" cy="30" r="24" stroke="#1f2937" stroke-width="6" fill="none"/>
@@ -224,6 +263,15 @@
       <span>API: <span class="text-slate-400">{{ apiBase }}</span></span>
       <span>{{ t.disclaimer }}</span>
     </footer>
+
+    <!-- ─── Toast host ─────────────────────────────────── -->
+    <div id="toast-host" aria-live="polite">
+      <div v-for="t in toasts" :key="t.id"
+           :class="['toast', t.kind === 'error' ? 'toast-err' : 'toast-ok']"
+           role="status">
+        {{ t.text }}
+      </div>
+    </div>
   </div>
 
   <script>
@@ -235,6 +283,13 @@
       { key: "fog" },
       { key: "wind_gust" },
       { key: "thunderstorm" },
+    ];
+    const SCENARIOS = [
+      { key: "genting",      lat: 3.4225,   lon: 101.7935 },   // Genting Highlands
+      { key: "cameron",      lat: 4.4710,   lon: 101.3779 },   // Cameron valley
+      { key: "kinabalu",     lat: 6.0747,   lon: 116.5586 },   // Mt Kinabalu
+      { key: "everest",      lat: 27.9881,  lon: 86.9250  },   // Mt Everest (OOD)
+      { key: "singapore",    lat: 1.3521,   lon: 103.8198 },   // Flat tropical
     ];
 
     const I18N = {
@@ -252,8 +307,24 @@
         activities: { hiker:"🥾 Hiker", driver:"🚗 Driver", construction:"🏗️ Construction", general:"🧭 General" },
         subHazards:  "Hazard breakdown",
         hazards: { rainfall:"Rainfall", fog:"Fog", wind_gust:"Wind gust", thunderstorm:"Thunderstorm" },
+        hazardTooltip: {
+          rainfall:     "Macro rain probability + terrain amplification.",
+          fog:          "Humidity, dew-point depression, cloud cover & basin geometry.",
+          wind_gust:    "Sustained wind + ridge/pass acceleration.",
+          thunderstorm: "CAPE instability + falling pressure precursor.",
+        },
         decisionTable: "Decision table",
         noRuleFired:   "No D5 §3.7.2 rule fired for this scenario.",
+        scenarios:     "Quick scenarios",
+        scenarioLabels: {
+          genting:   "🇲🇾 Genting Highlands · slope",
+          cameron:   "🇲🇾 Cameron Highlands · valley",
+          kinabalu:  "🇲🇾 Mt Kinabalu · 4 095 m peak",
+          everest:   "🏔️ Mt Everest · 8 848 m (OOD)",
+          singapore: "🌴 Singapore · flat tropical",
+        },
+        loading: "Loading…",
+        errorTitle: "Request failed",
       },
       zh: {
         clickHint: "点击地图任意位置开始分析",
@@ -269,16 +340,36 @@
         activities: { hiker:"🥾 徒步", driver:"🚗 驾驶", construction:"🏗️ 施工", general:"🧭 通用" },
         subHazards:  "分项灾害评分",
         hazards: { rainfall:"降雨", fog:"雾", wind_gust:"阵风", thunderstorm:"雷暴" },
+        hazardTooltip: {
+          rainfall:     "宏观降雨概率 + 地形放大。",
+          fog:          "湿度、露点温差、云量、盆地汇雾。",
+          wind_gust:    "持续风速 + 山脊/山口加速。",
+          thunderstorm: "CAPE 不稳定 + 气压骤降前兆。",
+        },
         decisionTable: "决策表",
         noRuleFired:   "当前场景未触发 D5 §3.7.2 中的任何规则。",
+        scenarios:     "快速场景",
+        scenarioLabels: {
+          genting:   "🇲🇾 云顶高原 · 山坡",
+          cameron:   "🇲🇾 金马仑高原 · 山谷",
+          kinabalu:  "🇲🇾 神山 · 4 095 m 山峰",
+          everest:   "🏔️ 珠穆朗玛 · 8 848 m （OOD）",
+          singapore: "🌴 新加坡 · 热带平原",
+        },
+        loading: "加载中…",
+        errorTitle: "请求失败",
       },
     };
 
     createApp({
       setup() {
-        const lang = ref("en");
+        const lang = ref(localStorage.getItem("mcx_lang") || "en");
         const activity = ref(localStorage.getItem("mcx_activity") || "hiker");
+        const loading = ref(false);
+        const toasts = reactive([]);
+        const selectedScenario = ref("");
         const t = computed(() => I18N[lang.value]);
+        watch(lang, v => localStorage.setItem("mcx_lang", v));
         const apiBase = (() => {
           const meta = document.querySelector('meta[name="api-base"]');
           if (meta) return meta.content;
@@ -352,6 +443,15 @@
 
         let map, marker;
 
+        function pushToast(text, kind = "ok", ttl = 4500) {
+          const item = { id: Date.now() + Math.random(), text, kind };
+          toasts.push(item);
+          setTimeout(() => {
+            const i = toasts.findIndex(x => x.id === item.id);
+            if (i >= 0) toasts.splice(i, 1);
+          }, ttl);
+        }
+
         async function fetchPrediction(lat, lon) {
           // typewriter — pre-clear and show "thinking"
           display.inference_log = [
@@ -359,26 +459,37 @@
               text_en: `Querying (${lat.toFixed(4)}, ${lon.toFixed(4)}) for activity=${activity.value}…`,
               text_zh: `查询坐标 (${lat.toFixed(4)}, ${lon.toFixed(4)})，活动类型 ${activity.value}…` },
           ];
+          loading.value = true;
           try {
             const r = await fetch(
               `${apiBase}/api/predict?lat=${lat}&lon=${lon}&activity=${encodeURIComponent(activity.value)}`
             );
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            if (!r.ok) {
+              let body;
+              try { body = await r.json(); } catch (_) { body = {}; }
+              const msg = body?.detail || `HTTP ${r.status}`;
+              throw new Error(msg);
+            }
             const data = await r.json();
             Object.assign(display, data);
-            // re-render inference log progressively (typewriter feel)
             const full = data.inference_log || [];
             display.inference_log = [];
             for (let i = 0; i < full.length; i++) {
-              await new Promise(res => setTimeout(res, 120));
+              await new Promise(res => setTimeout(res, 90));
               display.inference_log.push(full[i]);
             }
           } catch (err) {
+            const text = (lang.value === "zh"
+              ? `${t.value.errorTitle}：${err.message}`
+              : `${t.value.errorTitle}: ${err.message}`);
+            pushToast(text, "error", 6000);
             display.inference_log.push({
               kind: "veto",
               text_en: `Request failed: ${err.message}. Is the API running on ${apiBase}?`,
               text_zh: `请求失败：${err.message}。请确认 API 是否运行在 ${apiBase}。`,
             });
+          } finally {
+            loading.value = false;
           }
         }
 
@@ -399,18 +510,56 @@
           }
         }
 
+        function onScenarioChange() {
+          const s = SCENARIOS.find(x => x.key === selectedScenario.value);
+          if (!s) return;
+          display.latitude  = s.lat;
+          display.longitude = s.lon;
+          map.flyTo([s.lat, s.lon], 10, { duration: 1.2 });
+          if (marker) marker.setLatLng([s.lat, s.lon]);
+          else marker = L.marker([s.lat, s.lon]).addTo(map);
+          fetchPrediction(s.lat, s.lon);
+        }
+
+        async function checkBackendHealth() {
+          try {
+            const r = await fetch(`${apiBase}/api/health`, { cache: "no-store" });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const h = await r.json();
+            if (!h.ml_loaded) {
+              pushToast(
+                lang.value === "zh"
+                  ? "未检测到训练模型，正在使用启发式回退。运行 make train 后即可启用 Random Forest。"
+                  : "No trained model found — running on heuristic fallback. Run `make train` to enable Random Forest.",
+                "error", 7000);
+            }
+          } catch (_e) {
+            // The first /api/predict call will surface its own error toast.
+          }
+        }
+
         onMounted(() => {
           map = L.map("map", {
             center: [3.4225, 101.7935],  // Genting Highlands
             zoom: 9,
             zoomControl: true,
           });
-          L.tileLayer(
+          const dark = L.tileLayer(
             "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-            { attribution: "© OpenStreetMap, © CARTO" }
+            { attribution: "© OpenStreetMap, © CARTO", maxZoom: 19 }
+          );
+          const topo = L.tileLayer(
+            "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+            { attribution: "© OpenTopoMap, © OpenStreetMap", maxZoom: 17 }
+          );
+          dark.addTo(map);
+          L.control.layers(
+            { "Dark": dark, "Topographic": topo },
+            {}, { position: "bottomleft", collapsed: true }
           ).addTo(map);
           map.on("click", onClick);
 
+          checkBackendHealth();
           // Auto-trigger an initial demo query for Genting Highlands.
           setTimeout(() => onClick({ latlng: { lat: 3.4225, lng: 101.7935 } }), 600);
         });
@@ -419,7 +568,9 @@
           lang, t, display, riskFraction, riskColor, riskLevelText,
           logColor, logScroll, apiBase,
           activity, setActivity, subHazardColor, ruleFired,
-          ACTIVITIES, HAZARDS,
+          ACTIVITIES, HAZARDS, SCENARIOS,
+          selectedScenario, onScenarioChange,
+          loading, toasts,
         };
       },
     }).mount("#app");

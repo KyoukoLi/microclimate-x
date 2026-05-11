@@ -61,7 +61,7 @@ def _bin_level(score: int) -> RiskLevel:
 
 
 def _clip(x: float) -> int:
-    return max(0, min(100, int(round(x))))
+    return max(0, min(100, round(x)))
 
 
 # ════════════════════════════════════════════════════════════════════════

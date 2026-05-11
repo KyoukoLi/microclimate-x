@@ -1,0 +1,39 @@
+{
+  "generated_at": "2026-05-11T06:48:30.345137+00:00",
+  "n_test": 35063,
+  "n_positives": 10236,
+  "positive_rate": 0.29193166585859737,
+  "n_features": 18,
+  "roc": {
+    "auc": 0.870953740800761
+  },
+  "pr": {
+    "average_precision": 0.7504004568010204,
+    "base_rate": 0.29193166585859737
+  },
+  "calibration": {
+    "brier_score": 0.13834559028929125
+  },
+  "threshold_sweep": {
+    "best_f2": 0.777611430245236,
+    "best_f2_threshold": 0.2
+  },
+  "confusion": {
+    "tn": 13877,
+    "fp": 10950,
+    "fn": 679,
+    "tp": 9557
+  },
+  "top_features": [
+    "precipitation_lag_1h",
+    "hour_cos",
+    "hour_sin",
+    "pressure_change_3h",
+    "wind_v",
+    "dew_point_c",
+    "dew_point_depression",
+    "temperature_c",
+    "pressure_hpa",
+    "cloud_cover_pct"
+  ]
+}

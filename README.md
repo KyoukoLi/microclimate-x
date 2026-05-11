@@ -3,10 +3,14 @@
 > Intelligent Meteorological Analysis System for Complex Terrain  
 > 面向复杂地形的智能气象分析系统
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![CI](https://github.com/KyoukoLi/microclimate-x/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/Python-3.9%20%7C%203.11%20%7C%203.12-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688)
 ![Vue3](https://img.shields.io/badge/Vue.js-3-4FC08D)
 ![ML](https://img.shields.io/badge/ML-RandomForest-orange)
+![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
+![Tests](https://img.shields.io/badge/tests-70%20passing-success)
+![Docker](https://img.shields.io/badge/Docker-multi--stage-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 A Final Year Project at **Universiti Kebangsaan Malaysia (UKM)** — Faculty of Information Science & Technology.
@@ -92,46 +96,58 @@ Four hazard categories surfaced in the UI as four mini-gauges; the four R1-R4 in
 ## 5. Quick Start / 快速开始
 
 ```bash
-# 1. Clone & install
 git clone https://github.com/KyoukoLi/microclimate-x.git
 cd microclimate-x
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
 
-# 2a. (Recommended) Download real ERA5 data via Open-Meteo (~5-10 min)
-python scripts/1_download_dataset.py
-#  …or 2b. Offline fallback — generate a physically-plausible synthetic
-#         dataset with the same schema (~2 seconds, no network needed)
-python scripts/1b_synth_dataset.py
+# Fast path — everything via the Makefile
+make install-dev         # 1. create venv + install runtime + dev deps
+make synth               # 2. generate synthetic dataset (offline)
+#  …or `make` nothing here and run `python scripts/1_download_dataset.py`
+#     to fetch real ERA5 data when network is available.
+make preprocess          # 3. feature engineering + Y derivation
+make train               # 4. RF training + time-based CV
+make evaluate            # 5. ROC / PR / calibration / threshold-sweep figures
+make run                 # 6. uvicorn dev server on http://localhost:8000
 
-# 3. Preprocess + engineer features + label Y
-python scripts/2_preprocess.py
+# Then open frontend/index.html (or browse to http://localhost:8000/app/)
+```
 
-# 4. Train Random Forest (time-based split + classification report)
-python scripts/3_train_model.py
+### Docker one-liner
 
-# 5. Launch API
-uvicorn backend.main:app --reload --port 8000
+```bash
+docker compose up --build
+# API lives on http://localhost:8000  ·  frontend on http://localhost:8000/app/
+```
 
-# 6. Open frontend
-open frontend/index.html   # macOS
-# or just double-click frontend/index.html
+### Test it
+
+```bash
+make test         # 70 tests, ~12 s
+make lint         # ruff — zero errors expected
 ```
 
 ### Training results on real ERA5 data / 真实 ERA5 数据训练结果
 
 Trained on **175 315 hourly samples** from Open-Meteo Historical Archive
 (ECMWF ERA5 reanalysis) covering five Malaysian mountain sites,
-2020-01-01 → 2023-12-31. Time-based split: last 20 % per site held out.
+2020-01-01 → 2024-12-31. Time-based split: last 20 % per site held out
+(n = 35 063 test samples). See [`models/MODEL_CARD.md`](models/MODEL_CARD.md)
+for the full evaluation card and `figures/` for publication-ready plots.
 
-| Metric | Value |
-|---|---|
-| Test AUC      | **0.871** |
-| Test F1 (rain) | 0.686 |
-| Test F2 (rain) | **0.724** (we prefer F2 — recall matters more for safety) |
-| Recall (rain)  | 0.751 |
-| Precision (rain) | 0.631 |
-| Class balance  | 30.8 % positive (matches Malaysian mountain climatology) |
+| Metric | Value | Source |
+|---|---|---|
+| Test ROC AUC | **0.871** | `figures/01_roc_curve.png` |
+| Test PR Average Precision | **0.750** | `figures/02_pr_curve.png` |
+| Brier score (calibration) | **0.138** | `figures/03_calibration_curve.png` |
+| Best F2 @ τ = 0.20 | **0.778** | `figures/04_threshold_sweep.png` |
+| Recall (at chosen τ = 0.20) | **0.934** — safety-critical recall |
+| Class balance | 29.2 % positive (Malaysian mountain climatology) |
+
+We deliberately operate at **τ = 0.20**, not the default 0.50, because
+in safety-critical settings a missed rain event (false negative) on a
+windward slope is dramatically worse than a false positive. F2 score
+weights recall 4× higher than precision and is the principled metric
+for this regime.
 
 **5-fold time-series CV** on the training fold gives AUC ranging
 0.828-0.908 (mean ≈ 0.858), confirming the model is not over-fitting a

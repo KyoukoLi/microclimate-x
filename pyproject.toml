@@ -1,0 +1,45 @@
+[project]
+name = "microclimate-x"
+version = "1.0.0"
+description = "Hybrid Microclimate Risk Engine for Complex Terrain — UKM FYP."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Li Zhenyue (KyoukoLi)" }]
+
+[tool.ruff]
+line-length = 110
+target-version = "py39"
+extend-exclude = [".venv", "data", "models", "figures", "htmlcov"]
+
+[tool.ruff.lint]
+# E: pycodestyle errors    F: pyflakes    I: isort     UP: pyupgrade
+# B: flake8-bugbear        SIM: simplify  RUF: ruff-native
+# N: pep8-naming           ANN: annotations
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = [
+    "E501",   # line-too-long — config.py has long comment citations on purpose
+    "B008",   # function calls in argument defaults — FastAPI Query(...) idiom
+    "UP007",  # `X | Y` syntax — pydantic on py3.9 needs eval_type_backport anyway
+    "UP045",  # same
+    "RUF001", # ambiguous unicode chars — bilingual EN/ZH strings legitimately use them
+    "RUF002", # docstring ambiguous unicode chars
+    "RUF003", # comment ambiguous unicode chars
+    "SIM117", # combined `with` — readability over compactness here
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*"   = ["E402", "F401"]  # tests sometimes reorder imports for env setup
+"scripts/*" = ["E402"]          # scripts often set up paths before importing
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning:pydantic.*",
+]

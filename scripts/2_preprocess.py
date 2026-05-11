@@ -38,7 +38,7 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     """Add domain-informed derived features. Operates per site to avoid
     cross-site leakage in lag/shift operations."""
     out_frames: list[pd.DataFrame] = []
-    for site, g in df.groupby("site", sort=False):
+    for _, g in df.groupby("site", sort=False):
         g = g.sort_values("time").reset_index(drop=True).copy()
 
         # Wind: decompose into u/v components. Raw degrees are circular and

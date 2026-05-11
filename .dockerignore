@@ -1,0 +1,29 @@
+.git/
+.github/
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+
+# Local databases — must NOT bake into the image
+cache.sqlite3
+cache.sqlite3-*
+*.sqlite
+*.sqlite3*
+
+# Large dataset artefacts — re-download or regenerate inside the image
+data/
+figures/
+
+# Dev / IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Docs not needed at runtime
+docs/
+*.docx
+*.md
+!README.md

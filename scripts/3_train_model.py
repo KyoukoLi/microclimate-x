@@ -159,8 +159,8 @@ def main() -> int:
         json.dump(FEATURE_COLUMNS, f, indent=2)
     with open(MODEL_DIR / "training_report.json", "w") as f:
         json.dump({
-            "n_train":        int(len(train_df)),
-            "n_test":         int(len(test_df)),
+            "n_train":        len(train_df),
+            "n_test":         len(test_df),
             "class_balance":  float(df[TARGET].mean()),
             "cv_fold_metrics": fold_metrics,
             "test_metrics": {

@@ -7,12 +7,35 @@ This is intentional — at thesis defence the panel WILL ask
 """
 from __future__ import annotations
 
+import os
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_DIR = ROOT / "models"
 DATA_DIR  = ROOT / "data"
-DB_PATH   = ROOT / "cache.sqlite3"
+DB_PATH   = Path(os.environ.get("MICROCLIMATEX_DB", str(ROOT / "cache.sqlite3")))
+
+
+def _detect_git_revision() -> str:
+    """Best-effort short SHA. Returns "unknown" if git is not available
+    or this directory isn't a checkout (e.g. inside a Docker image)."""
+    env = os.environ.get("MICROCLIMATEX_GIT_REV")
+    if env:
+        return env
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=ROOT, capture_output=True, text=True, timeout=2.0,
+        )
+        if out.returncode == 0:
+            return out.stdout.strip()
+    except (FileNotFoundError, subprocess.SubprocessError):    # pragma: no cover
+        pass
+    return "unknown"
+
+
+GIT_REVISION = _detect_git_revision()
 
 
 # ──────────────────────────────────────────────────────────────────────────

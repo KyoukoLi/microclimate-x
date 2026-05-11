@@ -33,11 +33,23 @@ class TerrainInfo:
 # ────────────────────────────────────────────────────────────────────────
 
 def _build_3x3_grid(lat: float, lon: float, step_deg: float = 0.01) -> list[tuple[float, float]]:
-    """Eight neighbours + centre, ordered row-major (NW, N, NE, W, C, E, SW, S, SE)."""
+    """Eight neighbours + centre, ordered row-major (NW, N, NE, W, C, E, SW, S, SE).
+
+    Handles the antimeridian (lon ∈ [-180, 180]) and clips latitudes that
+    would walk off the poles. Without this, querying e.g. (89.999, 179.999)
+    would produce DEM coordinates that the upstream API rejects.
+    """
     points = []
     for dlat in (+step_deg, 0.0, -step_deg):       # north → south
         for dlon in (-step_deg, 0.0, +step_deg):   # west  → east
-            points.append((lat + dlat, lon + dlon))
+            new_lat = max(-90.0, min(90.0, lat + dlat))
+            new_lon = lon + dlon
+            # Wrap longitudes into (-180, 180] range.
+            if new_lon > 180.0:
+                new_lon -= 360.0
+            elif new_lon < -180.0:
+                new_lon += 360.0
+            points.append((new_lat, new_lon))
     return points
 
 
@@ -53,7 +65,17 @@ async def fetch_dem_3x3(lat: float, lon: float, client: httpx.AsyncClient,
     )
     resp.raise_for_status()
     data = resp.json()
-    return [float(r["elevation"]) for r in data["results"]]
+    elevations = []
+    for r in data.get("results", []):
+        e = r.get("elevation")
+        # Open-Topo returns None for ocean points and other no-data tiles.
+        elevations.append(float(e) if e is not None else 0.0)
+    if len(elevations) != 9:
+        raise ValueError(
+            f"DEM API returned {len(elevations)} cells, expected 9. "
+            "Coordinates may be over ocean or outside coverage."
+        )
+    return elevations
 
 
 # ────────────────────────────────────────────────────────────────────────
@@ -67,7 +89,8 @@ def classify_terrain(dem9: list[float], cell_size_m: float = 1100.0) -> TerrainI
         3 4 5          (W,  C,  E )
         6 7 8          (SW, S,  SE)
     """
-    assert len(dem9) == 9, "DEM matrix must be 3x3"
+    if len(dem9) != 9:
+        raise ValueError(f"DEM matrix must be 3x3, got {len(dem9)} cells")
     nw, n, ne, w, c, e, sw, s, se = dem9
 
     # Horn's algorithm — surface derivatives.

@@ -58,7 +58,6 @@ def generate_site(name: str, lat: float, lon: float, elev: float,
 
     hour  = timestamps.hour.to_numpy()
     doy   = timestamps.dayofyear.to_numpy()
-    month = timestamps.month.to_numpy()
 
     # Temperature: tropical baseline 27 °C at sea level, lapse rate to altitude,
     # plus diurnal swing (±4 °C) and seasonal (±1.5 °C).

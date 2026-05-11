@@ -39,12 +39,16 @@ CREATE TABLE IF NOT EXISTS inference_log (
     veto      INTEGER NOT NULL,
     summary   TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_log_ts ON inference_log(ts);
 """
+
+# Inference-log retention — older rows are pruned on startup.
+INFERENCE_LOG_RETENTION_DAYS = 7
 
 
 def _grid_key(lat: float, lon: float, activity: str = "general") -> str:
     res = config.GRID_RESOLUTION_DEG
-    return f"{int(round(lat / res))}:{int(round(lon / res))}:{activity}"
+    return f"{round(lat / res)}:{round(lon / res)}:{activity}"
 
 
 def _connect(db_path: Path) -> sqlite3.Connection:
@@ -135,3 +139,52 @@ async def log_inference(lat: float, lon: float, risk: int,
                         veto: bool, summary: str) -> None:
     await asyncio.to_thread(_log_blocking, config.DB_PATH, lat, lon,
                             risk, veto, summary)
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# GC / introspection
+# ──────────────────────────────────────────────────────────────────────────
+
+def _prune_blocking(db_path: Path) -> int:
+    """Delete expired cache rows + old inference_log rows. Returns total deleted."""
+    now = int(time.time())
+    log_cutoff = now - INFERENCE_LOG_RETENTION_DAYS * 86_400
+    conn = _connect(db_path)
+    try:
+        c1 = conn.execute("DELETE FROM grid_cache WHERE expires_at <= ?", (now,)).rowcount
+        c2 = conn.execute("DELETE FROM inference_log WHERE ts < ?",       (log_cutoff,)).rowcount
+        return int(c1 or 0) + int(c2 or 0)
+    finally:
+        conn.close()
+
+
+async def prune_expired(db_path: Path = config.DB_PATH) -> int:
+    """Run cache GC. Returns number of rows removed across both tables."""
+    return await asyncio.to_thread(_prune_blocking, db_path)
+
+
+def _stats_blocking(db_path: Path) -> dict[str, Any]:
+    now = int(time.time())
+    conn = _connect(db_path)
+    try:
+        total  = conn.execute("SELECT COUNT(*) FROM grid_cache").fetchone()[0]
+        live   = conn.execute(
+            "SELECT COUNT(*) FROM grid_cache WHERE expires_at > ?",
+            (now,),
+        ).fetchone()[0]
+        logged = conn.execute("SELECT COUNT(*) FROM inference_log").fetchone()[0]
+        page_size = conn.execute("PRAGMA page_size").fetchone()[0]
+        page_count = conn.execute("PRAGMA page_count").fetchone()[0]
+        return {
+            "rows_total":        int(total),
+            "rows_live":         int(live),
+            "rows_expired":      int(total) - int(live),
+            "inference_log_rows": int(logged),
+            "db_bytes":           int(page_size) * int(page_count),
+        }
+    finally:
+        conn.close()
+
+
+async def cache_stats(db_path: Path = config.DB_PATH) -> dict[str, Any]:
+    return await asyncio.to_thread(_stats_blocking, db_path)
